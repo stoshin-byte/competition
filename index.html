@@ -180,7 +180,7 @@
     <button type="button" class="btn-submit" onclick="startAppAsHost()" style="background:#3b82f6; margin-top:10px;">幹事としてリーダーボードを開く</button>
   </div>
 
-  <!-- ドロップダウン方式に変更した打順決定モーダル -->
+  <!-- 打順決定モーダル画面（スタートホール専用） -->
   <div id="order-modal" class="modal-overlay" style="display:none;">
     <div class="modal-content">
       <h2 style="margin-top:0;" id="order-modal-title">🥇 スタートホールの打順決定</h2>
@@ -605,13 +605,12 @@
       }
     }
 
-    // ドロップダウン選択用モジュールの表示処理
     function renderOrderModalDropdowns() {
       const listContainer = document.getElementById('order-modal-list');
       const totalPlayers = currentModalPlayers.length;
       listContainer.innerHTML = '';
 
-      currentModalPlayers.forEach((item, idx) => {
+      currentModalPlayers.forEach((item) => {
         let optionsHtml = '';
         for (let i = 1; i <= totalPlayers; i++) {
           optionsHtml += `<option value="${i}" ${i === item.initialOrder ? 'selected' : ''}>${i}打手</option>`;
@@ -628,16 +627,22 @@
       });
     }
 
-    // ドロップダウンで選択された打順を確定して進む処理
+    // チーム分配の崩れを完全に防ぐ、整合性の取れた打順確定＆チーム書き込み処理
     function confirmDropdownOrderAndProceed() {
+      let updates = {};
+
       currentModalPlayers.forEach(item => {
         const sel = document.getElementById(`modal-order-select-${item.id}`);
         const chosenOrder = sel ? parseInt(sel.value) : item.initialOrder;
-        db.ref(`rooms/${roomId}/scores/${selectedHole}/${item.id}/order`).set(chosenOrder);
+        updates[`rooms/${roomId}/scores/${selectedHole}/${item.id}/order`] = chosenOrder;
       });
 
-      document.getElementById('order-modal').style.display = 'none';
-      renderInputForm();
+      db.ref().update(updates).then(() => {
+        document.getElementById('order-modal').style.display = 'none';
+        renderInputForm();
+      }).catch(err => {
+        alert("エラーが発生しました: " + err.message);
+      });
     }
 
     function setPlayerSort(mode) {
@@ -672,7 +677,7 @@
           chipSelect.innerHTML = '<option value="-1">なし（該当者なし）</option>';
 
           Object.entries(globalData.players || {}).forEach(([pId, p]) => {
-            chipSelect.innerHTML += `<option value="${pId}" ${curWinner === pId ? 'selected' : ''}>${p.group}組: ${p.name}</option>`;
+            chipSelect.innerHTML += `<option value="${pId}" ${curWinner === pId ? 'selected' : ''}>${p.group}组: ${p.name}</option>`;
           });
         } else {
           chipBox.style.display = 'none';
