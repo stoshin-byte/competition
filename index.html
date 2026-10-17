@@ -83,7 +83,8 @@
     .btn-delete-past { background: #ef4444; color: white; font-size: 0.75em; font-weight: bold; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; width: auto; margin-top: 0; }
     .btn-delete-past:hover { background: #dc2626; }
 
-    .locked-container { opacity: 0.6; pointer-events: none; }
+    .locked-container { opacity: 0.5; pointer-events: none; }
+    .unreachable-box { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.85em; margin-bottom: 10px; }
 
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
     .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
@@ -200,8 +201,14 @@
 
     <div class="tab-group" id="hole-tabs"></div>
 
+    <!-- 未送信の前のホールがある場合の警告枠 -->
+    <div id="unreachable-msg" class="unreachable-box" style="display:none;">
+      ⚠️ 前のホールのスコアが未送信です。前のホールを先に送信してください。
+    </div>
+
+    <!-- 送信済みホールのロック解除ボタン枠 -->
     <div id="unlock-btn-container" style="display:none;">
-      <button class="btn-edit-unlock" onclick="unlockHoleForm()">✏️ このホールのスコアを編集する</button>
+      <button class="btn-edit-unlock" onclick="unlockHoleForm()">✏️ このホールのスコアを修正する</button>
     </div>
 
     <div id="hole-form-wrapper">
@@ -564,16 +571,21 @@
       }
     }
 
+    function isHoleSubmittedByMyGroup(hNum) {
+      const holeScores = (globalData.scores && globalData.scores[hNum]) || {};
+      const groupPlayers = Object.entries(globalData.players || {}).filter(([id, p]) => p.group === myGroup);
+      return groupPlayers.some(([pId]) => holeScores[pId] && holeScores[pId].score !== undefined);
+    }
+
     function checkAndShowOrderModal() {
       const seq = getHoleSequence();
       const startHole = seq[0];
-      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
-      const groupPlayers = Object.entries(globalData.players || {}).filter(([id, p]) => p.group === myGroup);
-      
-      const isAlreadySubmitted = groupPlayers.some(([pId]) => holeScores[pId] && holeScores[pId].score !== undefined);
+      const isAlreadySubmitted = isHoleSubmittedByMyGroup(selectedHole);
 
       if (selectedHole === startHole && !isAlreadySubmitted) {
+        const groupPlayers = Object.entries(globalData.players || {}).filter(([id, p]) => p.group === myGroup);
         const dynamicOrders = computeDynamicHoleOrders(seq, globalData.players || {}, globalData.scores || {}, globalData.pars || {});
+        const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
 
         currentModalOrderList = groupPlayers.sort((a, b) => {
           const orderA = (holeScores[a[0]] && holeScores[a[0]].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][a[0]]) || a[1].pos || 1;
@@ -616,6 +628,7 @@
       });
     }
 
+    // モーダルでの並び替え＆画面再描画関数の不具合修正
     function moveModalOrder(idx, dir) {
       const targetIdx = idx + dir;
       if (targetIdx < 0 || targetIdx >= currentModalOrderList.length) return;
@@ -627,6 +640,7 @@
       renderOrderModalList();
     }
 
+    // 確定時に即座にFirebaseへ打順を書き込んで固定
     function confirmOrderAndProceed() {
       currentModalOrderList.forEach((item, idx) => {
         db.ref(`rooms/${roomId}/scores/${selectedHole}/${item.id}/order`).set(idx + 1);
@@ -725,35 +739,48 @@
       currentHolePar = (globalData.pars && globalData.pars[selectedHole]) || 4;
       updateChipUI();
 
-      const list = document.getElementById('player-input-list');
-      const totalGroups = globalData.groupCount || 3;
+      const seq = getHoleSequence();
+      const currentHoleIndex = seq.indexOf(selectedHole);
+      const isAlreadySubmitted = isHoleSubmittedByMyGroup(selectedHole);
 
-      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
-      const groupPlayers = Object.entries(globalData.players || {}).filter(([id, p]) => p.group === myGroup);
-      
-      const isAlreadySubmitted = groupPlayers.some(([pId]) => holeScores[pId] && holeScores[pId].score !== undefined);
+      let isPreviousHoleSubmitted = true;
+      if (currentHoleIndex > 0) {
+        const prevHoleNum = seq[currentHoleIndex - 1];
+        isPreviousHoleSubmitted = isHoleSubmittedByMyGroup(prevHoleNum);
+      }
 
+      const unreachableMsg = document.getElementById('unreachable-msg');
       const unlockBtnContainer = document.getElementById('unlock-btn-container');
       const holeFormWrapper = document.getElementById('hole-form-wrapper');
 
-      if (isAlreadySubmitted && !isEditingUnlocked) {
+      if (!isPreviousHoleSubmitted) {
+        unreachableMsg.style.display = 'block';
+        unlockBtnContainer.style.display = 'none';
+        holeFormWrapper.classList.add('locked-container');
+      } 
+      else if (isAlreadySubmitted && !isEditingUnlocked) {
+        unreachableMsg.style.display = 'none';
         unlockBtnContainer.style.display = 'block';
         holeFormWrapper.classList.add('locked-container');
-      } else {
+      } 
+      else {
+        unreachableMsg.style.display = 'none';
         unlockBtnContainer.style.display = 'none';
         holeFormWrapper.classList.remove('locked-container');
       }
 
+      const list = document.getElementById('player-input-list');
       let headerInfo = `【${selectedHole}番ホール / PAR ${currentHolePar}】スコア＆イベント入力`;
-      if (isAlreadySubmitted && !isEditingUnlocked) {
-        headerInfo += `<div style="font-size:0.8em; color:#d97706; font-weight:bold; margin-top:2px;">🔒 このホールのスコアは送信済みです（編集ボタンで解除）</div>`;
+      if (isAlreadySubmitted && !isEditingUnlocked && isPreviousHoleSubmitted) {
+        headerInfo += `<div style="font-size:0.8em; color:#d97706; font-weight:bold; margin-top:2px;">🔒 このホールのスコアは送信済みです（修正ボタンで解除）</div>`;
       }
 
       list.innerHTML = `<p style="font-size:0.85em; font-weight:bold; margin-bottom:8px;">${headerInfo}</p>`;
 
-      const seq = getHoleSequence();
       const dynamicOrders = computeDynamicHoleOrders(seq, globalData.players || {}, globalData.scores || {}, globalData.pars || {});
       const activeTeams = getActiveTeamNames();
+      const groupPlayers = Object.entries(globalData.players || {}).filter(([id, p]) => p.group === myGroup);
+      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
 
       const sortedGroupPlayers = groupPlayers.sort((a, b) => {
         const orderA = (holeScores[a[0]] && holeScores[a[0]].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][a[0]]) || a[1].pos || 1;
