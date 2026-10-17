@@ -43,7 +43,6 @@
 
     .rank-1 { background: #fef08a; font-weight: bold; }
     
-    /* チームカラーバッジスタイル */
     .badge-team { padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75em; display: inline-block; }
     .badge-team-A { background: #dbeafe; color: #1e3a8a; border: 1px solid #bfdbfe; }
     .badge-team-B { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
@@ -59,6 +58,11 @@
     .penalty-checkboxes label { cursor: pointer; display: flex; align-items: center; gap: 2px; }
 
     .btn-order { background: #f1f5f9; border: 1px solid #cbd5e1; font-size: 0.75em; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: auto; display: inline-block; }
+
+    .history-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-top: 12px; }
+    .history-hole-title { font-weight: bold; color: #1e3a8a; font-size: 0.85em; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px; margin-bottom: 6px; }
+    .plus-pts { color: #2563eb; font-weight: bold; }
+    .minus-pts { color: #dc2626; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -143,22 +147,9 @@
     <button class="btn-submit" onclick="saveHoleScores()">このホールのスコアを送信・次ホールへ</button>
   </div>
 
-  <!-- リーダーボード（チームラスベガス ＆ 個人総合） -->
+  <!-- リーダーボード & 詳細履歴 -->
   <div class="card" id="board-sec" style="display:none;">
-    <h2>🏆 横断チーム対抗 順位（オナー自動判別ラスベガスP）</h2>
-    <div style="font-size:0.75em; color:#64748b; margin-bottom:6px;">※前ホールの成績からオナー（打順）を自動判定し、チームA〜Dを毎ホールシャッフルします</div>
-    <table>
-      <thead>
-        <tr>
-          <th>順位</th>
-          <th>チーム名</th>
-          <th>獲得ラスベガスP</th>
-        </tr>
-      </thead>
-      <tbody id="team-rank-body"></tbody>
-    </table>
-
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
       <h2 style="margin:0; border:none;">👤 個人総合リーダーボード</h2>
     </div>
 
@@ -186,8 +177,22 @@
     </table>
     <div style="font-size:0.7em; color:#64748b; margin-top:6px;">
       ※スコアP＝平均ネット打数−自分のネット打数<br>
-      ※チームP＝オナー打順で自動シャッフルされた横断チームの累積獲得P<br>
       ※総合P＝スコアP ＋ ゲームP ＋ チームP（完全ゼロサム）
+    </div>
+
+    <!-- 履歴切り替え表示エリア -->
+    <div style="margin-top:25px; border-top:2px solid #cbd5e1; padding-top:12px;">
+      <h2>📜 ホール別 詳細履歴</h2>
+      <div class="sort-btn-group">
+        <button class="btn-sort active" id="btn-view-vegas" onclick="toggleHistoryView('vegas')">🎰 ラスベガス対戦履歴</button>
+        <button class="btn-sort" id="btn-view-game" onclick="toggleHistoryView('game')">💎 ゲームP・役・罰符履歴</button>
+      </div>
+
+      <!-- ラスベガス履歴 -->
+      <div id="history-vegas-container"></div>
+
+      <!-- ゲームP履歴 -->
+      <div id="history-game-container" style="display:none;"></div>
     </div>
   </div>
 
@@ -203,6 +208,7 @@
     let selectedHole = 1;
     let currentHolePar = 4;
     let playerSortMode = 'total';
+    let historyViewMode = 'vegas';
     let globalData = { players: {}, scores: {}, pars: {}, chips: {}, startCourse: "OUT", groupCount: 3 };
 
     const TEAM_NAMES = ["チームA", "チームB", "チームC", "チームD"];
@@ -427,6 +433,15 @@
       calculateLeaderboard();
     }
 
+    function toggleHistoryView(mode) {
+      historyViewMode = mode;
+      document.getElementById('btn-view-vegas').className = `btn-sort ${mode === 'vegas' ? 'active' : ''}`;
+      document.getElementById('btn-view-game').className = `btn-sort ${mode === 'game' ? 'active' : ''}`;
+      
+      document.getElementById('history-vegas-container').style.display = (mode === 'vegas') ? 'block' : 'none';
+      document.getElementById('history-game-container').style.display = (mode === 'game') ? 'block' : 'none';
+    }
+
     function updateChipUI() {
       const chipBox = document.getElementById('chip-box');
       const chipSelect = document.getElementById('chip-winner-select');
@@ -492,7 +507,6 @@
 
       list.innerHTML = `<p style="font-size:0.85em; font-weight:bold; margin-bottom:8px;">${headerInfo}</p>`;
 
-      // 入力画面上の名前順は1組目P1〜P4の固定順（pos順）で並び替えを行わない
       const groupPlayers = Object.entries(globalData.players || {})
         .filter(([id, p]) => p.group === myGroup)
         .sort((a, b) => (a[1].pos || 1) - (b[1].pos || 1));
@@ -510,7 +524,6 @@
         const curPutt = curData.putt3 || false;
         const curBunker = curData.bunker || false;
 
-        // 打順（オナー）から該当ホールのチームを取得してチームカラーバッジを表示
         const autoOrder = (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][pId]) || p.pos || 1;
         const tIndex = ( (myGroup - 1) + (autoOrder - 1) ) % 4;
         const teamLabel = TEAM_NAMES[tIndex];
@@ -546,7 +559,6 @@
               </div>
             </div>
 
-            <!-- ペナルティチェックボックス (-1P) -->
             <div class="penalty-checkboxes">
               <span style="font-weight:bold; color:#be123c;">罰符(-1P):</span>
               <label><input type="checkbox" id="input-water-${pId}" ${curWater ? 'checked' : ''}>🌊池</label>
@@ -693,6 +705,10 @@
       let nearPinCarry = 0;
       let doraConCarry = 0;
 
+      // 履歴追跡用オブジェクト
+      let vegasHistory = {}; // hole -> { teams: { tKey: { members:[], code:0, diff:0 } } }
+      let gameHistory = {};  // hole -> { events: [] }
+
       Object.keys(players).forEach(pId => {
         playerTotals[pId] = { 
           ...players[pId], 
@@ -714,6 +730,10 @@
 
         let crossBest2Scores = {};
         let crossHasBirdie = {};
+        let crossMembers = {};
+
+        vegasHistory[h] = { par: par, teams: {} };
+        gameHistory[h] = { par: par, events: [] };
 
         Object.keys(players).forEach(pId => {
           const pGroup = players[pId].group;
@@ -722,7 +742,10 @@
           const tKey = TEAM_NAMES[tIndex];
 
           if (!crossBest2Scores[tKey]) crossBest2Scores[tKey] = [];
+          if (!crossMembers[tKey]) crossMembers[tKey] = [];
           if (crossHasBirdie[tKey] === undefined) crossHasBirdie[tKey] = false;
+
+          crossMembers[tKey].push(players[pId].name);
 
           if (hScores[pId]) {
             const rawScore = hScores[pId].score;
@@ -735,45 +758,70 @@
 
             if (rawScore < par) crossHasBirdie[tKey] = true;
 
+            // 1. オリンピック履歴＆ポイント算定
             const oly = hScores[pId].olympic;
             let rate = 0;
-            if (oly === 'gold') rate = 4;
-            if (oly === 'silver') rate = 3;
-            if (oly === 'bronze') rate = 2;
-            if (oly === 'iron') rate = 1;
-            if (oly === 'dia') rate = 5;
+            let olyName = "";
+            if (oly === 'gold') { rate = 4; olyName = "🥇 金"; }
+            if (oly === 'silver') { rate = 3; olyName = "🥈 銀"; }
+            if (oly === 'bronze') { rate = 2; olyName = "🥉 銅"; }
+            if (oly === 'iron') { rate = 1; olyName = "鉄"; }
+            if (oly === 'dia') { rate = 5; olyName = "💎 ダイヤ"; }
 
             if (rate > 0 && totalPlayersCount > 1) {
+              const gained = rate * (totalPlayersCount - 1);
+              gameHistory[h].events.push({
+                playerName: players[pId].name,
+                desc: `${olyName} 獲得`,
+                pts: gained
+              });
+
               Object.keys(players).forEach(targetId => {
-                if (targetId === pId) playerTotals[targetId].olyPoints += (rate * (totalPlayersCount - 1));
+                if (targetId === pId) playerTotals[targetId].olyPoints += gained;
                 else playerTotals[targetId].olyPoints -= rate;
               });
             }
 
-            let pCount = 0;
-            if (hScores[pId].water) pCount++;
-            if (hScores[pId].ob) pCount++;
-            if (hScores[pId].putt3) pCount++;
-            if (hScores[pId].bunker) pCount++;
+            // 2. ペナルティ履歴＆算定
+            let pList = [];
+            if (hScores[pId].water) pList.push("🌊池");
+            if (hScores[pId].ob) pList.push("💥OB");
+            if (hScores[pId].putt3) pList.push("⛳3パット");
+            if (hScores[pId].bunker) pList.push("⏳バンカー");
 
-            if (pCount > 0 && totalPlayersCount > 1) {
-              const penaltyPerPlayer = 1 * pCount;
+            if (pList.length > 0 && totalPlayersCount > 1) {
+              const penaltyCount = pList.length;
+              const lost = penaltyCount * (totalPlayersCount - 1);
+              gameHistory[h].events.push({
+                playerName: players[pId].name,
+                desc: `罰符 (${pList.join(',')})`,
+                pts: -lost
+              });
+
               Object.keys(players).forEach(targetId => {
-                if (targetId === pId) playerTotals[targetId].olyPoints -= (penaltyPerPlayer * (totalPlayersCount - 1));
-                else playerTotals[targetId].olyPoints += penaltyPerPlayer;
+                if (targetId === pId) playerTotals[targetId].olyPoints -= lost;
+                else playerTotals[targetId].olyPoints += penaltyCount;
               });
             }
           }
         });
 
+        // 3. チップ（ニアピン・ドラコン）履歴＆算定
         if (par === 3 || par === 5) {
           const winnerId = chips[h] || "-1";
 
           if (par === 3) {
             if (winnerId !== "-1" && players[winnerId]) {
               let unitPrize = 5 + nearPinCarry;
+              const totalGain = unitPrize * (totalPlayersCount - 1);
+              gameHistory[h].events.push({
+                playerName: players[winnerId].name,
+                desc: `🚩 ニアピン獲得${nearPinCarry > 0 ? ' (キャリー分含む)' : ''}`,
+                pts: totalGain
+              });
+
               Object.keys(players).forEach(targetId => {
-                if (targetId === winnerId) playerTotals[targetId].olyPoints += (unitPrize * (totalPlayersCount - 1));
+                if (targetId === winnerId) playerTotals[targetId].olyPoints += totalGain;
                 else playerTotals[targetId].olyPoints -= unitPrize;
               });
               nearPinCarry = 0;
@@ -783,8 +831,15 @@
           } else if (par === 5) {
             if (winnerId !== "-1" && players[winnerId]) {
               let unitPrize = 5 + doraConCarry;
+              const totalGain = unitPrize * (totalPlayersCount - 1);
+              gameHistory[h].events.push({
+                playerName: players[winnerId].name,
+                desc: `🏌️‍♂️ ドラコン獲得${doraConCarry > 0 ? ' (キャリー分含む)' : ''}`,
+                pts: totalGain
+              });
+
               Object.keys(players).forEach(targetId => {
-                if (targetId === winnerId) playerTotals[targetId].olyPoints += (unitPrize * (totalPlayersCount - 1));
+                if (targetId === winnerId) playerTotals[targetId].olyPoints += totalGain;
                 else playerTotals[targetId].olyPoints -= unitPrize;
               });
               doraConCarry = 0;
@@ -794,8 +849,10 @@
           }
         }
 
+        // 4. ベガス対戦計算 & 履歴保持
         const teams = Object.keys(crossTeamTotals);
         let teamVegasCode = {};
+        let holeTeamDiffs = { "チームA": 0, "チームB": 0, "チームC": 0, "チームD": 0 };
 
         teams.forEach(tKey => {
           if (crossBest2Scores[tKey] && crossBest2Scores[tKey].length >= 2) {
@@ -820,6 +877,9 @@
               crossTeamTotals[tA] += diff;
               crossTeamTotals[tB] -= diff;
 
+              holeTeamDiffs[tA] += diff;
+              holeTeamDiffs[tB] -= diff;
+
               Object.keys(players).forEach(pId => {
                 const pGroup = players[pId].group;
                 const autoOrder = (dynamicOrders[h] && dynamicOrders[h][pId]) || players[pId].pos || 1;
@@ -832,6 +892,14 @@
             }
           }
         }
+
+        teams.forEach(tKey => {
+          vegasHistory[h].teams[tKey] = {
+            members: crossMembers[tKey] || [],
+            code: teamVegasCode[tKey] ? buildVegasScore(teamVegasCode[tKey].best2, par, false) : "-",
+            diff: holeTeamDiffs[tKey]
+          };
+        });
       });
 
       if (totalPlayersCount > 0) {
@@ -846,21 +914,7 @@
         });
       }
 
-      const teamBody = document.getElementById('team-rank-body');
-      teamBody.innerHTML = '';
-      const sortedTeams = Object.keys(crossTeamTotals).sort((a, b) => crossTeamTotals[b] - crossTeamTotals[a]);
-
-      sortedTeams.forEach((tKey, idx) => {
-        const teamClass = TEAM_CLASSES[tKey] || "badge-team-A";
-        teamBody.innerHTML += `
-          <tr class="${idx === 0 ? 'rank-1' : ''}">
-            <td>${idx + 1}位</td>
-            <td><span class="badge-team ${teamClass}">${tKey}</span></td>
-            <td><b>${crossTeamTotals[tKey] >= 0 ? '+' : ''}${crossTeamTotals[tKey]} P</b></td>
-          </tr>
-        `;
-      });
-
+      // 個人順位表のレンダリング
       const playerBody = document.getElementById('player-rank-body');
       playerBody.innerHTML = '';
       let sortedPlayers = Object.values(playerTotals);
@@ -886,6 +940,78 @@
             <td><b>${p.totalPoints >= 0 ? '+' : ''}${p.totalPoints} P</b></td>
           </tr>
         `;
+      });
+
+      // 履歴（ラスベガス ＆ ゲームP）のレンダリング
+      renderHistoryUI(seq, vegasHistory, gameHistory);
+    }
+
+    function renderHistoryUI(seq, vegasHistory, gameHistory) {
+      const vContainer = document.getElementById('history-vegas-container');
+      const gContainer = document.getElementById('history-game-container');
+
+      vContainer.innerHTML = '';
+      gContainer.innerHTML = '';
+
+      seq.forEach(h => {
+        const vData = vegasHistory[h];
+        const gData = gameHistory[h];
+
+        // 1. ラスベガス履歴テーブル
+        if (vData && vData.teams) {
+          let tRows = '';
+          Object.keys(vData.teams).forEach(tKey => {
+            const t = vData.teams[tKey];
+            const tClass = TEAM_CLASSES[tKey] || "badge-team-A";
+            const diffStr = t.diff > 0 ? `<span class="plus-pts">+${t.diff} P</span>` : (t.diff < 0 ? `<span class="minus-pts">${t.diff} P</span>` : '0 P');
+
+            tRows += `
+              <tr>
+                <td><span class="badge-team ${tClass}">${tKey}</span></td>
+                <td style="font-size:0.75em;">${t.members.join(', ')}</td>
+                <td><b>${t.code}</b>点</td>
+                <td>${diffStr}</td>
+              </tr>
+            `;
+          });
+
+          vContainer.innerHTML += `
+            <div class="history-card">
+              <div class="history-hole-title">${h}番ホール (PAR${vData.par}) チーム戦スコア＆収支</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>チーム</th>
+                    <th>メンバー</th>
+                    <th>ベガス数字</th>
+                    <th>収支P</th>
+                  </tr>
+                </thead>
+                <tbody>${tRows}</tbody>
+              </table>
+            </div>
+          `;
+        }
+
+        // 2. ゲームP（役・ペナルティ）履歴
+        if (gData) {
+          let eventList = '';
+          if (gData.events && gData.events.length > 0) {
+            gData.events.forEach(e => {
+              const ptsStr = e.pts > 0 ? `<span class="plus-pts">+${e.pts} P</span>` : `<span class="minus-pts">${e.pts} P</span>`;
+              eventList += `<div style="font-size:0.8em; margin-bottom:2px;">• <b>${e.playerName}</b> : ${e.desc} ➔ ${ptsStr}</div>`;
+            });
+          } else {
+            eventList = `<div style="font-size:0.75em; color:#94a3b8;">(発生した役・ペナルティなし)</div>`;
+          }
+
+          gContainer.innerHTML += `
+            <div class="history-card">
+              <div class="history-hole-title">${h}番ホール (PAR${gData.par}) イベント・罰符発生ログ</div>
+              ${eventList}
+            </div>
+          `;
+        }
       });
     }
   </script>
