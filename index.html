@@ -86,6 +86,8 @@
 
     .par-select-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 4px; }
     .par-label-title { font-weight: bold; font-size: 0.8em; color: #1e3a8a; margin-top: 8px; margin-bottom: 2px; }
+    
+    .personal-select-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
   </style>
 </head>
 <body>
@@ -240,10 +242,20 @@
       <div class="sort-btn-group">
         <button type="button" class="btn-sort active" id="btn-view-vegas" onclick="toggleHistoryView('vegas')">🎰 ラスベガス対戦履歴</button>
         <button type="button" class="btn-sort" id="btn-view-game" onclick="toggleHistoryView('game')">💎 ゲームP・役・罰符履歴</button>
+        <button type="button" class="btn-sort" id="btn-view-personal" onclick="toggleHistoryView('personal')">👤 個人ホール別詳細</button>
       </div>
 
       <div id="history-vegas-container"></div>
       <div id="history-game-container" style="display:none;"></div>
+
+      <!-- 新設: 個人成績閲覧エリア -->
+      <div id="history-personal-container" style="display:none;">
+        <div class="personal-select-box">
+          <label style="font-weight:bold; font-size:0.85em; color:#1e3a8a;">👤 確認したいプレイヤーを選択:</label>
+          <select id="personal-player-select" onchange="renderPersonalHistory()"></select>
+        </div>
+        <div id="personal-detail-list"></div>
+      </div>
     </div>
   </div>
 
@@ -530,6 +542,7 @@
           if (roomTitleHeader && val.title) {
             roomTitleHeader.innerText = `🏆 ${val.title} 個人総合リーダーボード`;
           }
+          populatePersonalSelect();
         }
 
         if (!selectedHole || selectedHole === 1) {
@@ -542,6 +555,24 @@
         }
         calculateLeaderboard();
       });
+    }
+
+    function populatePersonalSelect() {
+      const select = document.getElementById('personal-player-select');
+      if (!select) return;
+      
+      const curSelected = select.value;
+      select.innerHTML = '';
+
+      Object.entries(globalData.players || {}).forEach(([pId, p]) => {
+        select.innerHTML += `<option value="${pId}" ${pId === curSelected ? 'selected' : ''}>${p.group}組: ${p.name}</option>`;
+      });
+
+      if (!select.value && Object.keys(globalData.players || {}).length > 0) {
+        select.value = Object.keys(globalData.players)[0];
+      }
+
+      renderPersonalHistory();
     }
 
     function getHoleSequence() {
@@ -602,9 +633,102 @@
       historyViewMode = mode;
       document.getElementById('btn-view-vegas').className = `btn-sort ${mode === 'vegas' ? 'active' : ''}`;
       document.getElementById('btn-view-game').className = `btn-sort ${mode === 'game' ? 'active' : ''}`;
+      document.getElementById('btn-view-personal').className = `btn-sort ${mode === 'personal' ? 'active' : ''}`;
       
       document.getElementById('history-vegas-container').style.display = (mode === 'vegas') ? 'block' : 'none';
       document.getElementById('history-game-container').style.display = (mode === 'game') ? 'block' : 'none';
+      document.getElementById('history-personal-container').style.display = (mode === 'personal') ? 'block' : 'none';
+
+      if (mode === 'personal') {
+        renderPersonalHistory();
+      }
+    }
+
+    // 個人ごとの全18ホール詳細表示レンダリング
+    function renderPersonalHistory() {
+      const targetPId = document.getElementById('personal-player-select').value;
+      const listContainer = document.getElementById('personal-detail-list');
+      if (!targetPId || !globalData.players || !globalData.players[targetPId]) {
+        listContainer.innerHTML = '<div style="font-size:0.8em; color:#94a3b8;">プレイヤーが選択されていません。</div>';
+        return;
+      }
+
+      const pInfo = globalData.players[targetPId];
+      const seq = getHoleSequence();
+      const dynamicOrders = computeDynamicHoleOrders(seq, globalData.players || {}, globalData.scores || {}, globalData.pars || {});
+      const activeTeams = getActiveTeamNames();
+
+      let tableRows = '';
+      let totalGross = 0;
+      let totalNet = 0;
+
+      seq.forEach(h => {
+        const hData = (globalData.scores && globalData.scores[h] && globalData.scores[h][targetPId]) || {};
+        const par = (globalData.pars && globalData.pars[h]) || 4;
+
+        if (hData.score) {
+          const gross = hData.score;
+          const net = getAdjustedScore(gross, pInfo, par);
+          totalGross += gross;
+          totalNet += net;
+
+          const autoOrder = (dynamicOrders[h] && dynamicOrders[h][targetPId]) || pInfo.pos || 1;
+          const tIndex = getBalancedTeamIndex(pInfo.group, autoOrder, activeTeams.length);
+          const tKey = activeTeams[tIndex];
+          const tClass = TEAM_CLASSES[tKey] || "badge-team-A";
+
+          let events = [];
+          if (hData.olympic === 'gold') events.push("🥇金");
+          if (hData.olympic === 'silver') events.push("🥈銀");
+          if (hData.olympic === 'bronze') events.push("🥉銅");
+          if (hData.olympic === 'iron') events.push("鉄");
+          if (hData.olympic === 'dia') events.push("💎ダイヤ");
+
+          if (hData.water) events.push("🌊池");
+          if (hData.ob) events.push("💥OB");
+          if (hData.putt3) events.push("⛳3パット");
+          if (hData.bunker) events.push("⏳バンカー");
+
+          if ((par === 3 || par === 5) && globalData.chips && globalData.chips[h] === targetPId) {
+            events.push(par === 3 ? "🚩ニアピン" : "🏌️ドラコン");
+          }
+
+          tableRows += `
+            <tr>
+              <td><b>${h}H</b> (P${par})</td>
+              <td><span class="badge-team ${tClass}">${tKey}</span> (${autoOrder}打手)</td>
+              <td><b>${gross}</b> (${net})</td>
+              <td style="font-size:0.75em;">${events.length > 0 ? events.join(', ') : '-'}</td>
+            </tr>
+          `;
+        } else {
+          tableRows += `
+            <tr>
+              <td><b>${h}H</b> (P${par})</td>
+              <td>-</td>
+              <td>-</td>
+              <td>未入力</td>
+            </tr>
+          `;
+        }
+      });
+
+      listContainer.innerHTML = `
+        <div style="font-weight:bold; font-size:0.9em; color:#1e3a8a; margin-bottom:6px;">
+          👤 ${pInfo.name} さんのホール別成績（合計: ${totalGross}打 / ネット: ${totalNet}打）
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ホール</th>
+              <th>所属チーム</th>
+              <th>グロス (ネット)</th>
+              <th>役・ペナルティ</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      `;
     }
 
     function updateChipUI() {
