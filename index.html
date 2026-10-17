@@ -52,7 +52,8 @@
     .player-card-setup { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; }
     .player-inputs-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; }
 
-    .btn-order { background: #f1f5f9; border: 1px solid #cbd5e1; font-size: 0.75em; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: auto; display: inline-block; }
+    .btn-order { background: #3b82f6; color: white; border: none; font-size: 0.8em; font-weight: bold; padding: 6px 10px; border-radius: 4px; cursor: pointer; width: auto; display: inline-block; }
+    .btn-order:active { background: #1d4ed8; }
 
     .history-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-top: 12px; }
     .history-hole-title { font-weight: bold; color: #1e3a8a; font-size: 0.85em; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px; margin-bottom: 6px; }
@@ -628,7 +629,7 @@
       });
     }
 
-    // モーダルでの並び替え＆画面再描画関数の不具合修正
+    // 確実な打順入れ替えと画面即時更新
     function moveModalOrder(idx, dir) {
       const targetIdx = idx + dir;
       if (targetIdx < 0 || targetIdx >= currentModalOrderList.length) return;
@@ -640,7 +641,6 @@
       renderOrderModalList();
     }
 
-    // 確定時に即座にFirebaseへ打順を書き込んで固定
     function confirmOrderAndProceed() {
       currentModalOrderList.forEach((item, idx) => {
         db.ref(`rooms/${roomId}/scores/${selectedHole}/${item.id}/order`).set(idx + 1);
@@ -664,7 +664,7 @@
       document.getElementById('btn-view-game').className = `btn-sort ${mode === 'game' ? 'active' : ''}`;
       
       document.getElementById('history-vegas-container').style.display = (mode === 'vegas') ? 'block' : 'none';
-      document.getElementById('history-game-container').style.display = (mode === 'game') ? 'block' : 'none';
+      document.getElementById('history-game-container').style.display = (mode === 'game') ? 'display:none;';
     }
 
     function updateChipUI() {
