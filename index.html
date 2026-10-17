@@ -158,7 +158,7 @@
 
     <div id="group-inputs-container" style="margin-top:15px;"></div>
 
-    <button class="btn-submit" onclick="createTournament()">コンペを作成してLINE共有リンクを発行</button>
+    <button type="button" class="btn-submit" onclick="createTournament()">コンペを作成してLINE共有リンクを発行</button>
 
     <div style="margin-top:25px; border-top:2px solid #cbd5e1; padding-top:12px;">
       <h2>📚 過去のコンペ履歴（過去ラウンドの振り返り）</h2>
@@ -178,7 +178,7 @@
       <a id="viewer-share-btn" href="#" target="_blank" class="btn-share-viewer">👀 一般参加者へ閲覧専用リンクをLINE共有</a>
     </div>
 
-    <button class="btn-submit" onclick="startAppAsHost()" style="background:#3b82f6; margin-top:10px;">幹事としてリーダーボードを開く</button>
+    <button type="button" class="btn-submit" onclick="startAppAsHost()" style="background:#3b82f6; margin-top:10px;">幹事としてリーダーボードを開く</button>
   </div>
 
   <!-- 打順決定モーダル画面（スタートホール専用） -->
@@ -189,7 +189,7 @@
       
       <div id="order-modal-list"></div>
 
-      <button class="btn-submit" onclick="confirmOrderAndProceed()" style="background:#2563eb; margin-top:15px;">この打順で確定してスコア入力へ ➔</button>
+      <button type="button" class="btn-submit" onclick="confirmOrderAndProceed()" style="background:#2563eb; margin-top:15px;">この打順で確定してスコア入力へ ➔</button>
     </div>
   </div>
 
@@ -207,7 +207,7 @@
     </div>
 
     <div id="unlock-btn-container" style="display:none;">
-      <button class="btn-edit-unlock" onclick="unlockHoleForm()">✏️ このホールのスコアを修正する</button>
+      <button type="button" class="btn-edit-unlock" onclick="unlockHoleForm()">✏️ このホールのスコアを修正する</button>
     </div>
 
     <div id="hole-form-wrapper">
@@ -219,7 +219,7 @@
 
       <div id="player-input-list"></div>
 
-      <button class="btn-submit" id="btn-submit-hole" onclick="saveHoleScores()">このホールのスコアを送信・次ホールへ</button>
+      <button type="button" class="btn-submit" id="btn-submit-hole" onclick="saveHoleScores()">このホールのスコアを送信・次ホールへ</button>
     </div>
   </div>
 
@@ -230,9 +230,9 @@
     </div>
 
     <div class="sort-btn-group" style="margin-top:8px;">
-      <button class="btn-sort active" id="btn-sort-total" onclick="setPlayerSort('total')">👑 総合P順 (全合算)</button>
-      <button class="btn-sort" id="btn-sort-net" onclick="setPlayerSort('net')">⛳️ ネット打数順</button>
-      <button class="btn-sort" id="btn-sort-game" onclick="setPlayerSort('game')">💎 ゲームP順</button>
+      <button type="button" class="btn-sort active" id="btn-sort-total" onclick="setPlayerSort('total')">👑 総合P順 (全合算)</button>
+      <button type="button" class="btn-sort" id="btn-sort-net" onclick="setPlayerSort('net')">⛳️ ネット打数順</button>
+      <button type="button" class="btn-sort" id="btn-sort-game" onclick="setPlayerSort('game')">💎 ゲームP順</button>
     </div>
 
     <table>
@@ -258,8 +258,8 @@
     <div style="margin-top:25px; border-top:2px solid #cbd5e1; padding-top:12px;">
       <h2>📜 ホール別 詳細履歴</h2>
       <div class="sort-btn-group">
-        <button class="btn-sort active" id="btn-view-vegas" onclick="toggleHistoryView('vegas')">🎰 ラスベガス対戦履歴</button>
-        <button class="btn-sort" id="btn-view-game" onclick="toggleHistoryView('game')">💎 ゲームP・役・罰符履歴</button>
+        <button type="button" class="btn-sort active" id="btn-view-vegas" onclick="toggleHistoryView('vegas')">🎰 ラスベガス対戦履歴</button>
+        <button type="button" class="btn-sort" id="btn-view-game" onclick="toggleHistoryView('game')">💎 ゲームP・役・罰符履歴</button>
       </div>
 
       <div id="history-vegas-container"></div>
@@ -348,7 +348,7 @@
                 <div style="font-size:0.75em; color:#64748b;">${dateStr} (${rData.groupCount || 3}組 / ${rData.teamCount || 4}チーム / ${pCount}名)</div>
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
-                <button class="btn-delete-past" onclick="deletePastRoom(event, '${rId}', '${titleStr}')">🗑️ 削除</button>
+                <button type="button" class="btn-delete-past" onclick="deletePastRoom(event, '${rId}', '${titleStr}')">🗑️ 削除</button>
                 <div onclick="openPastRoom('${rId}')" style="font-size:0.8em; font-weight:bold; color:#2563eb; cursor:pointer;">閲覧 ➔</div>
               </div>
             </div>
@@ -551,7 +551,7 @@
 
       seq.forEach(h => {
         tabContainer.innerHTML += `
-          <button class="btn-tab ${h === selectedHole ? 'active' : ''}" id="tab-h${h}" onclick="selectHole(${h})">${h}H</button>
+          <button type="button" class="btn-tab ${h === selectedHole ? 'active' : ''}" id="tab-h${h}" onclick="selectHole(${h})">${h}H</button>
         `;
       });
     }
@@ -632,14 +632,14 @@
       });
     }
 
-    // 正確な配列スワップ（入れ替え）とモーダル内即時再描画処理
+    // 順序入れ替え処理の不具合修正（要素スワップ ＋ 明示的な画面更新）
     function moveModalOrder(idx, dir) {
       const targetIdx = idx + dir;
       if (targetIdx < 0 || targetIdx >= currentModalOrderList.length) return;
 
-      const itemToMove = currentModalOrderList[idx];
+      const temp = currentModalOrderList[idx];
       currentModalOrderList[idx] = currentModalOrderList[targetIdx];
-      currentModalOrderList[targetIdx] = itemToMove;
+      currentModalOrderList[targetIdx] = temp;
 
       renderOrderModalList();
     }
