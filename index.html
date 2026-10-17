@@ -84,11 +84,8 @@
     .locked-container { opacity: 0.5; pointer-events: none; }
     .unreachable-box { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.85em; margin-bottom: 10px; }
 
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-    .order-item-card { background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-    
-    .select-order-dropdown { width: 110px; padding: 6px; font-weight: bold; color: #1e3a8a; border: 2px solid #2563eb; background: white; border-radius: 6px; font-size: 0.9em; margin-top: 0; }
+    .par-select-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 4px; }
+    .par-label-title { font-weight: bold; font-size: 0.8em; color: #1e3a8a; margin-top: 8px; margin-bottom: 2px; }
   </style>
 </head>
 <body>
@@ -129,29 +126,25 @@
       </div>
     </div>
 
-    <!-- 全18ホール事前PAR設定グリッド -->
+    <!-- 新PAR設定エリア（PAR3とPAR5のホールのみ選択） -->
     <div style="margin-top:15px; background:#f8fafc; border:1px solid #cbd5e1; padding:10px; border-radius:8px;">
-      <div style="font-weight:bold; font-size:0.85em; color:#1e3a8a; margin-bottom:6px;">⛳️ 全18ホールの事前PAR設定</div>
-      <div style="display:grid; grid-template-columns: repeat(9, 1fr); gap:4px; font-size:0.7em; text-align:center;">
-        <div><b>1H</b><select id="init-par-1"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
-        <div><b>2H</b><select id="init-par-2"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
-        <div><b>3H</b><select id="init-par-3"><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></div>
-        <div><b>4H</b><select id="init-par-4"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
-        <div><b>5H</b><select id="init-par-5"><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option></select></div>
-        <div><b>6H</b><select id="init-par-6"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
-        <div><b>7H</b><select id="init-par-7"><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></div>
-        <div><b>8H</b><select id="init-par-8"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
-        <div><b>9H</b><select id="init-par-9"><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option></select></div>
+      <div style="font-weight:bold; font-size:0.85em; color:#1e3a8a; margin-bottom:4px;">⛳️ PAR3・PAR5の対象ホール指定</div>
+      <div style="font-size:0.72em; color:#64748b; margin-bottom:8px;">※選択しなかった残り10ホールは自動的にすべてPAR4となります。</div>
 
-        <div><b>10H</b><select id="init-par-10"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
-        <div><b>11H</b><select id="init-par-11"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
-        <div><b>12H</b><select id="init-par-12"><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></div>
-        <div><b>13H</b><select id="init-par-13"><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option></select></div>
-        <div><b>14H</b><select id="init-par-14"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
-        <div><b>15H</b><select id="init-par-15"><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
-        <div><b>16H</b><select id="init-par-16"><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></div>
-        <div><b>17H</b><select id="init-par-17"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
-        <div><b>18H</b><select id="init-par-18"><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option></select></div>
+      <div class="par-label-title">🚩 PAR 3 ホール（4箇所を選択）</div>
+      <div class="par-select-grid">
+        <select id="par3-select-1"></select>
+        <select id="par3-select-2"></select>
+        <select id="par3-select-3"></select>
+        <select id="par3-select-4"></select>
+      </div>
+
+      <div class="par-label-title">🏌️‍♂️ PAR 5 ホール（4箇所を選択）</div>
+      <div class="par-select-grid">
+        <select id="par5-select-1"></select>
+        <select id="par5-select-2"></select>
+        <select id="par5-select-3"></select>
+        <select id="par5-select-4"></select>
       </div>
     </div>
 
@@ -178,18 +171,6 @@
     </div>
 
     <button type="button" class="btn-submit" onclick="startAppAsHost()" style="background:#3b82f6; margin-top:10px;">幹事としてリーダーボードを開く</button>
-  </div>
-
-  <!-- ドロップダウン方式の打順決定モーダル -->
-  <div id="order-modal" class="modal-overlay" style="display:none;">
-    <div class="modal-content">
-      <h2 style="margin-top:0;" id="order-modal-title">🥇 スタートホールの打順決定</h2>
-      <p style="font-size:0.8em; color:#64748b; margin-bottom:12px;">各メンバーの1ホール目の打順（オナー）を選択してください。</p>
-      
-      <div id="order-modal-list"></div>
-
-      <button type="button" class="btn-submit" onclick="confirmDropdownOrderAndProceed()" style="background:#2563eb; margin-top:15px;">この打順で確定してスコア入力へ ➔</button>
-    </div>
   </div>
 
   <!-- スコア入力エリア（代表者用） -->
@@ -280,7 +261,6 @@
     let playerSortMode = 'total';
     let historyViewMode = 'vegas';
     let isEditingUnlocked = false; 
-    let currentModalPlayers = []; 
     let globalData = { players: {}, scores: {}, pars: {}, chips: {}, startCourse: "OUT", groupCount: 3, teamCount: 3 };
 
     let tempInputState = {}; 
@@ -298,15 +278,14 @@
       return ALL_TEAM_NAMES.slice(0, num);
     }
 
-    // 全チームの打順合計が常に等しく「6」になる巡回循環チーム決定関数
     function getBalancedTeamIndex(groupNum, orderNum, teamNum) {
-      const g = groupNum - 1; // 0, 1, 2
-      const o = orderNum - 1; // 0, 1, 2
-      // 巡回シフト (組番号ごとにスタートチームをシフトし和を平準化)
+      const g = groupNum - 1; 
+      const o = orderNum - 1; 
       return (g + o) % teamNum;
     }
 
     window.onload = function() {
+      initParDropdownOptions();
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
       const groupParam = urlParams.get('group');
@@ -320,6 +299,27 @@
         loadPastRoomsList();
       }
     };
+
+    // PAR3・PAR5の選択ドロップダウンの初期生成
+    function initParDropdownOptions() {
+      const defaultPar3 = [3, 7, 12, 16];
+      const defaultPar5 = [5, 9, 13, 18];
+
+      for (let i = 1; i <= 4; i++) {
+        const sel3 = document.getElementById(`par3-select-${i}`);
+        const sel5 = document.getElementById(`par5-select-${i}`);
+
+        if (sel3 && sel5) {
+          sel3.innerHTML = '';
+          sel5.innerHTML = '';
+
+          for (let h = 1; h <= 18; h++) {
+            sel3.innerHTML += `<option value="${h}" ${h === defaultPar3[i - 1] ? 'selected' : ''}>${h}H</option>`;
+            sel5.innerHTML += `<option value="${h}" ${h === defaultPar5[i - 1] ? 'selected' : ''}>${h}H</option>`;
+          }
+        }
+      }
+    }
 
     function loadPastRoomsList() {
       const pastListEl = document.getElementById('past-rooms-list');
@@ -415,6 +415,29 @@
       const teamCount = parseInt(document.getElementById('teamCountSelect').value);
       const startCourse = document.getElementById('startCourseSelect').value;
       
+      // PAR設定の読み取り（デフォルトPAR4、指定ホールのみPAR3/PAR5）
+      let pars = {};
+      for (let h = 1; h <= 18; h++) { pars[h] = 4; }
+
+      let par3Holes = [];
+      let par5Holes = [];
+
+      for (let i = 1; i <= 4; i++) {
+        par3Holes.push(parseInt(document.getElementById(`par3-select-${i}`).value));
+        par5Holes.push(parseInt(document.getElementById(`par5-select-${i}`).value));
+      }
+
+      // 重複チェック
+      const allSelected = [...par3Holes, ...par5Holes];
+      const hasDuplicates = new Set(allSelected).size !== allSelected.length;
+      if (hasDuplicates) {
+        alert("⚠️ PAR3とPAR5の選択ホールに重複があります。異なるホールを指定してください。");
+        return;
+      }
+
+      par3Holes.forEach(h => pars[h] = 3);
+      par5Holes.forEach(h => pars[h] = 5);
+
       roomId = "room-" + Math.random().toString(36).substring(2, 8);
       
       let players = {};
@@ -437,12 +460,6 @@
             };
           }
         }
-      }
-
-      let pars = {};
-      for(let h=1; h<=18; h++) {
-        const parSel = document.getElementById(`init-par-${h}`);
-        pars[h] = parSel ? parseInt(parSel.value) : 4;
       }
 
       db.ref(`rooms/${roomId}`).set({
@@ -524,7 +541,7 @@
 
         initHoleTabs();
         if (myGroup > 0) {
-          checkAndShowOrderModal();
+          renderInputForm();
         }
         calculateLeaderboard();
       });
@@ -566,7 +583,7 @@
       currentHolePar = (globalData.pars && globalData.pars[selectedHole]) || 4;
 
       if (myGroup > 0) {
-        checkAndShowOrderModal();
+        renderInputForm();
       }
     }
 
@@ -574,70 +591,6 @@
       const holeScores = (globalData.scores && globalData.scores[hNum]) || {};
       const groupPlayers = Object.entries(globalData.players || {}).filter(([id, p]) => p.group === myGroup);
       return groupPlayers.some(([pId]) => holeScores[pId] && holeScores[pId].score !== undefined);
-    }
-
-    function checkAndShowOrderModal() {
-      const seq = getHoleSequence();
-      const startHole = seq[0];
-      const isAlreadySubmitted = isHoleSubmittedByMyGroup(selectedHole);
-
-      if (selectedHole === startHole && !isAlreadySubmitted) {
-        const groupPlayers = Object.entries(globalData.players || {}).filter(([id, p]) => p.group === myGroup);
-        const dynamicOrders = computeDynamicHoleOrders(seq, globalData.players || {}, globalData.scores || {}, globalData.pars || {});
-        const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
-
-        currentModalPlayers = groupPlayers.sort((a, b) => {
-          const orderA = (holeScores[a[0]] && holeScores[a[0]].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][a[0]]) || a[1].pos || 1;
-          const orderB = (holeScores[b[0]] && holeScores[b[0]].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][b[0]]) || b[1].pos || 1;
-          return orderA - orderB;
-        }).map(([id, p], idx) => ({ id, name: p.name, initialOrder: idx + 1 }));
-
-        document.getElementById('order-modal-title').innerText = `🥇 ${selectedHole}番ホール (スタート) の打順決定`;
-        renderOrderModalDropdowns();
-        document.getElementById('order-modal').style.display = 'flex';
-      } else {
-        document.getElementById('order-modal').style.display = 'none';
-        renderInputForm();
-      }
-    }
-
-    function renderOrderModalDropdowns() {
-      const listContainer = document.getElementById('order-modal-list');
-      const totalPlayers = currentModalPlayers.length;
-      listContainer.innerHTML = '';
-
-      currentModalPlayers.forEach((item) => {
-        let optionsHtml = '';
-        for (let i = 1; i <= totalPlayers; i++) {
-          optionsHtml += `<option value="${i}" ${i === item.initialOrder ? 'selected' : ''}>${i}打手</option>`;
-        }
-
-        listContainer.innerHTML += `
-          <div class="order-item-card">
-            <span style="font-weight:bold; font-size:1em; color:#1e293b;">${item.name}</span>
-            <select id="modal-order-select-${item.id}" class="select-order-dropdown">
-              ${optionsHtml}
-            </select>
-          </div>
-        `;
-      });
-    }
-
-    function confirmDropdownOrderAndProceed() {
-      let updates = {};
-
-      currentModalPlayers.forEach(item => {
-        const sel = document.getElementById(`modal-order-select-${item.id}`);
-        const chosenOrder = sel ? parseInt(sel.value) : item.initialOrder;
-        updates[`rooms/${roomId}/scores/${selectedHole}/${item.id}/order`] = chosenOrder;
-      });
-
-      db.ref().update(updates).then(() => {
-        document.getElementById('order-modal').style.display = 'none';
-        renderInputForm();
-      }).catch(err => {
-        alert("エラーが発生しました: " + err.message);
-      });
     }
 
     function setPlayerSort(mode) {
@@ -773,8 +726,8 @@
       const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
 
       const sortedGroupPlayers = groupPlayers.sort((a, b) => {
-        const orderA = (holeScores[a[0]] && holeScores[a[0]].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][a[0]]) || a[1].pos || 1;
-        const orderB = (holeScores[b[0]] && holeScores[b[0]].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][b[0]]) || b[1].pos || 1;
+        const orderA = (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][a[0]]) || a[1].pos || 1;
+        const orderB = (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][b[0]]) || b[1].pos || 1;
         return orderA - orderB;
       });
 
@@ -793,7 +746,7 @@
           };
         }
 
-        const autoOrder = (curData.order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][pId]) || p.pos || (idx + 1);
+        const autoOrder = (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][pId]) || p.pos || (idx + 1);
         const tIndex = getBalancedTeamIndex(myGroup, autoOrder, activeTeams.length);
         const teamLabel = activeTeams[tIndex];
         const teamClass = TEAM_CLASSES[teamLabel] || "badge-team-A";
@@ -830,9 +783,9 @@
             <div style="font-size:0.7em; font-weight:bold; color:#be123c; margin-bottom:2px;">罰符 (-1P):</div>
             <div class="btn-grid-pen">
               <button type="button" class="btn-pen ${st.water?'active':''}" id="btn-pen-${pId}-water" onclick="togglePen('${pId}', 'water')">🌊池ポチャ</button>
-              <button type="button" class="btn-pen ${st.ob?'active':''}" id="btn-pen-${pId}-ob" onclick="togglePen('${pId}', 'ob')">💥OB</button>
-              <button type="button" class="btn-pen ${st.putt3?'active':''}" id="btn-pen-${pId}-putt3" onclick="togglePen('${pId}', 'putt3')">⛳️3パット</button>
-              <button type="button" class="btn-pen ${st.bunker?'active':''}" id="btn-pen-${pId}-bunker" onclick="togglePen('${pId}', 'bunker')">⏳バンカー</button>
+              <button type="button" class="btn-pen ${st.ob?'active':''}" id="btn-pen('${pId}', 'ob')">💥OB</button>
+              <button type="button" class="btn-pen ${st.putt3?'active':''}" id="btn-pen('${pId}', 'putt3')">⛳️3パット</button>
+              <button type="button" class="btn-pen ${st.bunker?'active':''}" id="btn-pen('${pId}', 'bunker')">⏳バンカー</button>
             </div>
           </div>
         `;
@@ -852,14 +805,13 @@
       const groupPlayers = Object.entries(globalData.players || {})
         .filter(([id, p]) => p.group === myGroup);
 
-      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
       const seq = getHoleSequence();
       const dynamicOrders = computeDynamicHoleOrders(seq, globalData.players || {}, globalData.scores || {}, globalData.pars || {});
 
       groupPlayers.forEach(([pId, p], idx) => {
         const st = tempInputState[pId] || {};
         const scoreVal = st.score || currentHolePar;
-        const curOrder = (holeScores[pId] && holeScores[pId].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][pId]) || p.pos || (idx + 1);
+        const curOrder = (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][pId]) || p.pos || (idx + 1);
 
         db.ref(`rooms/${roomId}/scores/${selectedHole}/${pId}`).set({
           score: scoreVal,
@@ -932,8 +884,7 @@
 
           if (hIdx === 0) {
             prevOrderList.forEach((pId, idx) => {
-              const explicitOrder = scores[h] && scores[h][pId] && scores[h][pId].order;
-              holeOrders[h][pId] = explicitOrder || (idx + 1);
+              holeOrders[h][pId] = idx + 1;
             });
           } else {
             const prevHole = seq[hIdx - 1];
@@ -954,8 +905,7 @@
 
             const newOrderList = currentRankings.map(x => x.id);
             newOrderList.forEach((pId, idx) => {
-              const explicitOrder = scores[h] && scores[h][pId] && scores[h][pId].order;
-              holeOrders[h][pId] = explicitOrder || (idx + 1);
+              holeOrders[h][pId] = idx + 1;
             });
 
             prevOrderList = newOrderList;
@@ -1012,7 +962,7 @@
 
         Object.keys(players).forEach(pId => {
           const pGroup = players[pId].group;
-          const autoOrder = (hScores[pId] && hScores[pId].order) || (dynamicOrders[h] && dynamicOrders[h][pId]) || players[pId].pos || 1;
+          const autoOrder = (dynamicOrders[h] && dynamicOrders[h][pId]) || players[pId].pos || 1;
           const tIndex = getBalancedTeamIndex(pGroup, autoOrder, activeTeams.length);
           const tKey = activeTeams[tIndex];
 
@@ -1154,7 +1104,7 @@
 
               Object.keys(players).forEach(pId => {
                 const pGroup = players[pId].group;
-                const autoOrder = (hScores[pId] && hScores[pId].order) || (dynamicOrders[h] && dynamicOrders[h][pId]) || players[pId].pos || 1;
+                const autoOrder = (dynamicOrders[h] && dynamicOrders[h][pId]) || players[pId].pos || 1;
                 const tIndex = getBalancedTeamIndex(pGroup, autoOrder, activeTeams.length);
                 const pTeam = activeTeams[tIndex];
 
