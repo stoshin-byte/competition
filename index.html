@@ -248,7 +248,7 @@
       <div id="history-vegas-container"></div>
       <div id="history-game-container" style="display:none;"></div>
 
-      <!-- 新設: 個人成績閲覧エリア -->
+      <!-- 個人成績詳細表示エリア -->
       <div id="history-personal-container" style="display:none;">
         <div class="personal-select-box">
           <label style="font-weight:bold; font-size:0.85em; color:#1e3a8a;">👤 確認したいプレイヤーを選択:</label>
@@ -276,6 +276,7 @@
     let globalData = { players: {}, scores: {}, pars: {}, chips: {}, startCourse: "OUT", groupCount: 3, teamCount: 3 };
 
     let tempInputState = {}; 
+    let holeCalculatedCache = {}; // ラスベガスP＆個人別ログキャッシュ
 
     const ALL_TEAM_NAMES = ["チームA", "チームB", "チームC", "チームD"];
     const TEAM_CLASSES = { 
@@ -644,7 +645,7 @@
       }
     }
 
-    // 個人ごとの全18ホール詳細表示レンダリング
+    // ラスベガスP移動＆他者起因のマイナスPを含む個人ホール別成績の可視化
     function renderPersonalHistory() {
       const targetPId = document.getElementById('personal-player-select').value;
       const listContainer = document.getElementById('personal-detail-list');
@@ -661,50 +662,41 @@
       let tableRows = '';
       let totalGross = 0;
       let totalNet = 0;
+      let totalVegasP = 0;
 
       seq.forEach(h => {
         const hData = (globalData.scores && globalData.scores[h] && globalData.scores[h][targetPId]) || {};
         const par = (globalData.pars && globalData.pars[h]) || 4;
+        const cache = (holeCalculatedCache[h] && holeCalculatedCache[h][targetPId]) || { vegasDiff: 0, events: [] };
 
         if (hData.score) {
           const gross = hData.score;
           const net = getAdjustedScore(gross, pInfo, par);
           totalGross += gross;
           totalNet += net;
+          totalVegasP += cache.vegasDiff;
 
           const autoOrder = (dynamicOrders[h] && dynamicOrders[h][targetPId]) || pInfo.pos || 1;
           const tIndex = getBalancedTeamIndex(pInfo.group, autoOrder, activeTeams.length);
           const tKey = activeTeams[tIndex];
           const tClass = TEAM_CLASSES[tKey] || "badge-team-A";
 
-          let events = [];
-          if (hData.olympic === 'gold') events.push("🥇金");
-          if (hData.olympic === 'silver') events.push("🥈銀");
-          if (hData.olympic === 'bronze') events.push("🥉銅");
-          if (hData.olympic === 'iron') events.push("鉄");
-          if (hData.olympic === 'dia') events.push("💎ダイヤ");
-
-          if (hData.water) events.push("🌊池");
-          if (hData.ob) events.push("💥OB");
-          if (hData.putt3) events.push("⛳3パット");
-          if (hData.bunker) events.push("⏳バンカー");
-
-          if ((par === 3 || par === 5) && globalData.chips && globalData.chips[h] === targetPId) {
-            events.push(par === 3 ? "🚩ニアピン" : "🏌️ドラコン");
-          }
+          const vegasStr = cache.vegasDiff > 0 ? `<span class="plus-pts">+${cache.vegasDiff}P</span>` : (cache.vegasDiff < 0 ? `<span class="minus-pts">${cache.vegasDiff}P</span>` : '0P');
 
           tableRows += `
             <tr>
               <td><b>${h}H</b> (P${par})</td>
               <td><span class="badge-team ${tClass}">${tKey}</span> (${autoOrder}打手)</td>
               <td><b>${gross}</b> (${net})</td>
-              <td style="font-size:0.75em;">${events.length > 0 ? events.join(', ') : '-'}</td>
+              <td><b>${vegasStr}</b></td>
+              <td style="font-size:0.75em; text-align:left; padding-left:6px;">${cache.events.length > 0 ? cache.events.join('<br>') : '-'}</td>
             </tr>
           `;
         } else {
           tableRows += `
             <tr>
               <td><b>${h}H</b> (P${par})</td>
+              <td>-</td>
               <td>-</td>
               <td>-</td>
               <td>未入力</td>
@@ -714,16 +706,17 @@
       });
 
       listContainer.innerHTML = `
-        <div style="font-weight:bold; font-size:0.9em; color:#1e3a8a; margin-bottom:6px;">
-          👤 ${pInfo.name} さんのホール別成績（合計: ${totalGross}打 / ネット: ${totalNet}打）
+        <div style="font-weight:bold; font-size:0.88em; color:#1e3a8a; margin-bottom:6px;">
+          👤 ${pInfo.name} さんのホール別詳細 (累計: ${totalGross}打 / ラスベガス収支: ${totalVegasP >= 0 ? '+' : ''}${totalVegasP}P)
         </div>
         <table>
           <thead>
             <tr>
               <th>ホール</th>
               <th>所属チーム</th>
-              <th>グロス (ネット)</th>
-              <th>役・ペナルティ</th>
+              <th>打数(NET)</th>
+              <th>ラスベガスP</th>
+              <th>イベント・ペナルティ内訳</th>
             </tr>
           </thead>
           <tbody>${tableRows}</tbody>
@@ -1054,6 +1047,7 @@
 
       let vegasHistory = {};
       let gameHistory = {};
+      holeCalculatedCache = {};
 
       Object.keys(players).forEach(pId => {
         playerTotals[pId] = { 
@@ -1073,6 +1067,11 @@
       seq.forEach(h => {
         const hScores = scores[h] || {};
         const par = pars[h] || 4;
+        if (!holeCalculatedCache[h]) holeCalculatedCache[h] = {};
+
+        Object.keys(players).forEach(pId => {
+          holeCalculatedCache[h][pId] = { vegasDiff: 0, events: [] };
+        });
 
         let crossBest2Scores = {};
         let crossHasBirdie = {};
@@ -1107,11 +1106,11 @@
             const oly = hScores[pId].olympic;
             let rate = 0;
             let olyName = "";
-            if (oly === 'gold') { rate = 4; olyName = "🥇 金"; }
-            if (oly === 'silver') { rate = 3; olyName = "🥈 銀"; }
-            if (oly === 'bronze') { rate = 2; olyName = "🥉 銅"; }
+            if (oly === 'gold') { rate = 4; olyName = "🥇金"; }
+            if (oly === 'silver') { rate = 3; olyName = "🥈銀"; }
+            if (oly === 'bronze') { rate = 2; olyName = "🥉銅"; }
             if (oly === 'iron') { rate = 1; olyName = "鉄"; }
-            if (oly === 'dia') { rate = 5; olyName = "💎 ダイヤ"; }
+            if (oly === 'dia') { rate = 5; olyName = "💎ダイヤ"; }
 
             if (rate > 0 && totalPlayersCount > 1) {
               const gained = rate * (totalPlayersCount - 1);
@@ -1122,8 +1121,13 @@
               });
 
               Object.keys(players).forEach(targetId => {
-                if (targetId === pId) playerTotals[targetId].olyPoints += gained;
-                else playerTotals[targetId].olyPoints -= rate;
+                if (targetId === pId) {
+                  playerTotals[targetId].olyPoints += gained;
+                  holeCalculatedCache[h][targetId].events.push(`<span class="plus-pts">${olyName}獲得 (+${gained}P)</span>`);
+                } else {
+                  playerTotals[targetId].olyPoints -= rate;
+                  holeCalculatedCache[h][targetId].events.push(`<span class="minus-pts">他: ${players[pId].name}の${olyName} (-${rate}P)</span>`);
+                }
               });
             }
 
@@ -1143,8 +1147,13 @@
               });
 
               Object.keys(players).forEach(targetId => {
-                if (targetId === pId) playerTotals[targetId].olyPoints -= lost;
-                else playerTotals[targetId].olyPoints += penaltyCount;
+                if (targetId === pId) {
+                  playerTotals[targetId].olyPoints -= lost;
+                  holeCalculatedCache[h][targetId].events.push(`<span class="minus-pts">罰符 (${pList.join(',')}) (-${lost}P)</span>`);
+                } else {
+                  playerTotals[targetId].olyPoints += penaltyCount;
+                  holeCalculatedCache[h][targetId].events.push(`<span class="plus-pts">他: ${players[pId].name}の罰符還元 (+${penaltyCount}P)</span>`);
+                }
               });
             }
           }
@@ -1164,8 +1173,13 @@
               });
 
               Object.keys(players).forEach(targetId => {
-                if (targetId === winnerId) playerTotals[targetId].olyPoints += totalGain;
-                else playerTotals[targetId].olyPoints -= unitPrize;
+                if (targetId === winnerId) {
+                  playerTotals[targetId].olyPoints += totalGain;
+                  holeCalculatedCache[h][targetId].events.push(`<span class="plus-pts">🚩 ニアピン獲得 (+${totalGain}P)</span>`);
+                } else {
+                  playerTotals[targetId].olyPoints -= unitPrize;
+                  holeCalculatedCache[h][targetId].events.push(`<span class="minus-pts">他: ニアピン獲得者へ支払 (-${unitPrize}P)</span>`);
+                }
               });
               nearPinCarry = 0;
             } else {
@@ -1182,8 +1196,13 @@
               });
 
               Object.keys(players).forEach(targetId => {
-                if (targetId === winnerId) playerTotals[targetId].olyPoints += totalGain;
-                else playerTotals[targetId].olyPoints -= unitPrize;
+                if (targetId === winnerId) {
+                  playerTotals[targetId].olyPoints += totalGain;
+                  holeCalculatedCache[h][targetId].events.push(`<span class="plus-pts">🏌️‍♂️ ドラコン獲得 (+${totalGain}P)</span>`);
+                } else {
+                  playerTotals[targetId].olyPoints -= unitPrize;
+                  holeCalculatedCache[h][targetId].events.push(`<span class="minus-pts">他: ドラコン獲得者へ支払 (-${unitPrize}P)</span>`);
+                }
               });
               doraConCarry = 0;
             } else {
@@ -1229,8 +1248,14 @@
                 const tIndex = getBalancedTeamIndex(pGroup, autoOrder, activeTeams.length);
                 const pTeam = activeTeams[tIndex];
 
-                if (pTeam === tA) playerTotals[pId].teamPoints += diff;
-                if (pTeam === tB) playerTotals[pId].teamPoints -= diff;
+                if (pTeam === tA) {
+                  playerTotals[pId].teamPoints += diff;
+                  holeCalculatedCache[h][pId].vegasDiff += diff;
+                }
+                if (pTeam === tB) {
+                  playerTotals[pId].teamPoints -= diff;
+                  holeCalculatedCache[h][pId].vegasDiff -= diff;
+                }
               });
             }
           }
