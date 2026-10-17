@@ -24,7 +24,7 @@
     .btn-par.active { background: #2563eb; color: white; border-color: #2563eb; }
 
     .sort-btn-group { display: flex; gap: 6px; margin-bottom: 10px; }
-    .btn-sort { flex: 1; padding: 6px; font-size: 0.8em; font-weight: bold; border: 1px solid #cbd5e1; background: #e2e8f0; border-radius: 6px; cursor: pointer; text-align: center; }
+    .btn-sort { flex: 1; padding: 6px; font-size: 0.75em; font-weight: bold; border: 1px solid #cbd5e1; background: #e2e8f0; border-radius: 6px; cursor: pointer; text-align: center; }
     .btn-sort.active { background: #0284c7; color: white; border-color: #0284c7; }
 
     .chip-box { background: #fefce8; border: 1px solid #fef08a; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
@@ -37,12 +37,12 @@
     .btn-share-line { background: #06c755; color: white; font-weight: bold; padding: 10px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: block; text-align: center; margin-top: 6px; }
     .btn-share-viewer { background: #64748b; color: white; font-weight: bold; padding: 10px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: block; text-align: center; margin-top: 6px; }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.85em; }
-    th, td { border: 1px solid #ddd; padding: 6px 4px; text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.78em; }
+    th, td { border: 1px solid #ddd; padding: 6px 2px; text-align: center; }
     th { background: #eef2f5; }
 
     .rank-1 { background: #fef08a; font-weight: bold; }
-    .badge-team { padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75em; background: #dbeafe; color: #1e3a8a; }
+    .badge-team { padding: 2px 4px; border-radius: 4px; font-weight: bold; font-size: 0.75em; background: #dbeafe; color: #1e3a8a; }
     .group-setup-box { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
     .group-setup-title { font-weight: bold; color: #1e3a8a; font-size: 0.9em; margin-bottom: 6px; }
     
@@ -50,6 +50,8 @@
     .player-inputs-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; }
     .penalty-checkboxes { display: flex; gap: 8px; font-size: 0.75em; margin-top: 6px; background: #fff1f2; padding: 4px 6px; border-radius: 4px; border: 1px solid #fecdd3; }
     .penalty-checkboxes label { cursor: pointer; display: flex; align-items: center; gap: 2px; }
+
+    .btn-order { background: #f1f5f9; border: 1px solid #cbd5e1; font-size: 0.75em; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: auto; display: inline-block; }
   </style>
 </head>
 <body>
@@ -90,7 +92,7 @@
   <!-- LINE共有リンク表示エリア -->
   <div class="card" id="share-sec" style="display:none;">
     <h2>📲 参加者・閲覧者への共有用リンク</h2>
-    <p style="font-size:0.8em; color:#64748b;">各組の代表者、および一般閲覧者（スコア入力なし）へLINEでリンクを送信できます。</p>
+    <p style="font-size:0.8em; color:#64748b;">各組の代表者、および一般閲覧者（スコア入力なし）へLINEで送信できます。</p>
     
     <div id="share-buttons-list"></div>
 
@@ -136,12 +138,13 @@
 
   <!-- リーダーボード（チームラスベガス ＆ 個人総合） -->
   <div class="card" id="board-sec" style="display:none;">
-    <h2>🏆 チーム対抗 順位（ベスト2ラスベガス通算P）</h2>
+    <h2>🏆 横断チーム対抗 順位（毎ホール変則ラスベガスP）</h2>
+    <div style="font-size:0.75em; color:#64748b; margin-bottom:6px;">※打順（1〜4打手）に応じてチームA〜Dが毎ホール自動シャッフルされます</div>
     <table>
       <thead>
         <tr>
           <th>順位</th>
-          <th>チーム</th>
+          <th>チーム名</th>
           <th>獲得ラスベガスP</th>
         </tr>
       </thead>
@@ -154,8 +157,9 @@
 
     <!-- ソート順切り替えボタン -->
     <div class="sort-btn-group" style="margin-top:8px;">
-      <button class="btn-sort active" id="btn-sort-net" onclick="setPlayerSort('net')">⛳️ ネットスコア順</button>
-      <button class="btn-sort" id="btn-sort-point" onclick="setPlayerSort('point')">💎 獲得ポイント順</button>
+      <button class="btn-sort active" id="btn-sort-total" onclick="setPlayerSort('total')">👑 総合P順 (全合算)</button>
+      <button class="btn-sort" id="btn-sort-net" onclick="setPlayerSort('net')">⛳️ ネット打数順</button>
+      <button class="btn-sort" id="btn-sort-game" onclick="setPlayerSort('game')">💎 ゲームP順</button>
     </div>
 
     <table>
@@ -164,16 +168,23 @@
           <th>順位</th>
           <th>組</th>
           <th>名前</th>
-          <th>ネット打数 (グロス)</th>
-          <th>個人P (ゲーム+チップ-罰符)</th>
+          <th>ネット (グロス)</th>
+          <th>スコアP</th>
+          <th>ゲームP</th>
+          <th>チームP</th>
+          <th>総合P</th>
         </tr>
       </thead>
       <tbody id="player-rank-body"></tbody>
     </table>
+    <div style="font-size:0.7em; color:#64748b; margin-top:6px;">
+      ※スコアP＝平均ネット打数−自分のネット打数<br>
+      ※チームP＝参加した横断チームの累積獲得P<br>
+      ※総合P＝スコアP ＋ ゲームP ＋ チームP（完全ゼロサム）
+    </div>
   </div>
 
   <script>
-    // 設定済みの Firebase URL[cite: 1]
     const firebaseConfig = {
       databaseURL: "https://okadagolf-app-default-rtdb.firebaseio.com/"
     };
@@ -184,8 +195,10 @@
     let myGroup = 0;
     let selectedHole = 1;
     let currentHolePar = 4;
-    let playerSortMode = 'net';
+    let playerSortMode = 'total';
     let globalData = { players: {}, scores: {}, pars: {}, chips: {}, startCourse: "OUT", groupCount: 3 };
+
+    const TEAM_NAMES = ["チームA", "チームB", "チームC", "チームD"];
 
     window.onload = function() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -256,7 +269,8 @@
               name: nameInput.value.trim(),
               hdcp: parseInt(hdcpInput.value) || 0,
               hdcpRule: ruleInput ? ruleInput.value : 'none',
-              group: g
+              group: g,
+              pos: p
             };
           }
         }
@@ -399,12 +413,12 @@
 
     function setPlayerSort(mode) {
       playerSortMode = mode;
+      document.getElementById('btn-sort-total').className = `btn-sort ${mode === 'total' ? 'active' : ''}`;
       document.getElementById('btn-sort-net').className = `btn-sort ${mode === 'net' ? 'active' : ''}`;
-      document.getElementById('btn-sort-point').className = `btn-sort ${mode === 'point' ? 'active' : ''}`;
+      document.getElementById('btn-sort-game').className = `btn-sort ${mode === 'game' ? 'active' : ''}`;
       calculateLeaderboard();
     }
 
-    // チップUI制御（最終組代表者のみ入力可能）
     function updateChipUI() {
       const chipBox = document.getElementById('chip-box');
       const chipSelect = document.getElementById('chip-winner-select');
@@ -412,7 +426,6 @@
       const totalGroups = globalData.groupCount || 3;
 
       if (currentHolePar === 3 || currentHolePar === 5) {
-        // 自分の組が「最終組」である場合のみ表示
         if (myGroup === totalGroups) {
           chipBox.style.display = 'block';
           titleLabel.innerText = currentHolePar === 3 ? "🚩 ニアピン獲得者（全コンペ対象 - 各5P）" : "🏌️‍♂️ ドラコン獲得者（全コンペ対象 - 各5P）";
@@ -424,12 +437,38 @@
             chipSelect.innerHTML += `<option value="${pId}" ${curWinner === pId ? 'selected' : ''}>${p.group}組: ${p.name}</option>`;
           });
         } else {
-          // 最終組以外は非表示
           chipBox.style.display = 'none';
         }
       } else {
         chipBox.style.display = 'none';
       }
+    }
+
+    // 該当ホールの打順を入れ替える（画面上＋一時保持）
+    function changeHoleOrder(pId, direction) {
+      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
+      const groupPlayers = Object.entries(globalData.players || {})
+        .filter(([id, p]) => p.group === myGroup)
+        .sort((a, b) => {
+          const orderA = (holeScores[a[0]] && holeScores[a[0]].order) || a[1].pos || 1;
+          const orderB = (holeScores[b[0]] && holeScores[b[0]].order) || b[1].pos || 1;
+          return orderA - orderB;
+        });
+
+      const idx = groupPlayers.findIndex(([id]) => id === pId);
+      if (idx === -1) return;
+
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= groupPlayers.length) return;
+
+      const curId = groupPlayers[idx][0];
+      const targetId = groupPlayers[targetIdx][0];
+
+      const curOrder = (holeScores[curId] && holeScores[curId].order) || (idx + 1);
+      const targetOrder = (holeScores[targetId] && holeScores[targetId].order) || (targetIdx + 1);
+
+      db.ref(`rooms/${roomId}/scores/${selectedHole}/${curId}/order`).set(targetOrder);
+      db.ref(`rooms/${roomId}/scores/${selectedHole}/${targetId}/order`).set(curOrder);
     }
 
     function renderInputForm() {
@@ -439,19 +478,23 @@
       const totalGroups = globalData.groupCount || 3;
       let isChipHole = (currentHolePar === 3 || currentHolePar === 5);
 
-      let headerInfo = `【${selectedHole}番ホール (PAR${currentHolePar})】打数＆イベント・ペナルティ入力`;
+      let headerInfo = `【${selectedHole}番ホール (PAR${currentHolePar})】打順＆スコア・ペナルティ入力`;
       if (isChipHole && myGroup !== totalGroups) {
         headerInfo += `<div style="font-size:0.75em; color:#d97706; font-weight:normal; margin-top:2px;">※ニアピン・ドラコンの入力は最終組（${totalGroups}組目）の代表者が行います</div>`;
       }
 
       list.innerHTML = `<p style="font-size:0.85em; font-weight:bold; margin-bottom:8px;">${headerInfo}</p>`;
 
-      const groupPlayers = Object.entries(globalData.players || {})
-        .filter(([id, p]) => p.group === myGroup);
-
       const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
+      const groupPlayers = Object.entries(globalData.players || {})
+        .filter(([id, p]) => p.group === myGroup)
+        .sort((a, b) => {
+          const orderA = (holeScores[a[0]] && holeScores[a[0]].order) || a[1].pos || 1;
+          const orderB = (holeScores[b[0]] && holeScores[b[0]].order) || b[1].pos || 1;
+          return orderA - orderB;
+        });
 
-      groupPlayers.forEach(([pId, p]) => {
+      groupPlayers.forEach(([pId, p], idx) => {
         const curData = holeScores[pId] || {};
         const curScore = curData.score || currentHolePar;
         const curOly = curData.olympic || "";
@@ -459,9 +502,22 @@
         const curOb = curData.ob || false;
         const curPutt = curData.putt3 || false;
 
+        const hOrder = curData.order || (idx + 1);
+        const tIndex = ( (myGroup - 1) + (hOrder - 1) ) % 4;
+        const teamLabel = TEAM_NAMES[tIndex];
+
         list.innerHTML += `
           <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:8px; border-radius:6px; margin-bottom:8px;">
-            <div style="font-weight:bold; font-size:0.9em; margin-bottom:4px;">${p.name} (HDCP:${p.hdcp})</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div style="font-weight:bold; font-size:0.9em;">
+                ${hOrder}打手: ${p.name} (HDCP:${p.hdcp}) <span class="badge-team">${teamLabel}</span>
+              </div>
+              <div>
+                ${idx > 0 ? `<button class="btn-order" onclick="changeHoleOrder('\${pId}', -1)">▲上へ</button>` : ''}
+                ${idx < groupPlayers.length - 1 ? `<button class="btn-order" onclick="changeHoleOrder('\${pId}', 1)">▼下へ</button>` : ''}
+              </div>
+            </div>
+
             <div class="grid-3">
               <div>
                 <span style="font-size:0.7em;">打数</span>
@@ -502,27 +558,34 @@
     }
 
     function saveHoleScores() {
+      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
       const groupPlayers = Object.entries(globalData.players || {})
-        .filter(([id, p]) => p.group === myGroup);
+        .filter(([id, p]) => p.group === myGroup)
+        .sort((a, b) => {
+          const orderA = (holeScores[a[0]] && holeScores[a[0]].order) || a[1].pos || 1;
+          const orderB = (holeScores[b[0]] && holeScores[b[0]].order) || b[1].pos || 1;
+          return orderA - orderB;
+        });
 
-      groupPlayers.forEach(([pId]) => {
+      groupPlayers.forEach(([pId], idx) => {
         const scoreVal = parseInt(document.getElementById(`input-score-${pId}`).value) || currentHolePar;
         const olyVal = document.getElementById(`input-oly-${pId}`).value;
         const waterVal = document.getElementById(`input-water-${pId}`).checked;
         const obVal = document.getElementById(`input-ob-${pId}`).checked;
         const puttVal = document.getElementById(`input-putt3-${pId}`).checked;
+        const curOrder = (holeScores[pId] && holeScores[pId].order) || (idx + 1);
 
         db.ref(`rooms/${roomId}/scores/${selectedHole}/${pId}`).set({
           score: scoreVal,
           olympic: olyVal,
           water: waterVal,
           ob: obVal,
-          putt3: puttVal
+          putt3: puttVal,
+          order: curOrder
         });
       });
 
       const totalGroups = globalData.groupCount || 3;
-      // 最終組のみチップの情報を保存
       if ((currentHolePar === 3 || currentHolePar === 5) && myGroup === totalGroups) {
         const chipWinner = document.getElementById('chip-winner-select').value;
         db.ref(`rooms/${roomId}/chips/${selectedHole}`).set(chipWinner);
@@ -570,14 +633,21 @@
       const chips = globalData.chips || {};
       const totalPlayersCount = Object.keys(players).length;
 
-      let vegasTeamTotals = {};
+      let crossTeamTotals = { "チームA": 0, "チームB": 0, "チームC": 0, "チームD": 0 };
       let playerTotals = {};
       let nearPinCarry = 0;
       let doraConCarry = 0;
 
       Object.keys(players).forEach(pId => {
-        playerTotals[pId] = { ...players[pId], gross: 0, net: 0, olyPoints: 0 };
-        vegasTeamTotals[players[pId].group] = 0;
+        playerTotals[pId] = { 
+          ...players[pId], 
+          gross: 0, 
+          net: 0, 
+          olyPoints: 0, 
+          scorePoints: 0, 
+          teamPoints: 0, 
+          totalPoints: 0 
+        };
       });
 
       const seq = getHoleSequence();
@@ -586,13 +656,18 @@
         const hScores = scores[h] || {};
         const par = pars[h] || 4;
 
-        let groupBest2Scores = {};
-        let groupHasBirdie = {};
+        let crossBest2Scores = {};
+        let crossHasBirdie = {};
 
+        // 毎ホールごとに各人の「打順（order）」に基づいて所属チームを動的判定
         Object.keys(players).forEach(pId => {
-          const g = players[pId].group;
-          if (!groupBest2Scores[g]) groupBest2Scores[g] = [];
-          if (groupHasBirdie[g] === undefined) groupHasBirdie[g] = false;
+          const pGroup = players[pId].group;
+          const hOrder = (hScores[pId] && hScores[pId].order) || players[pId].pos || 1;
+          const tIndex = ( (pGroup - 1) + (hOrder - 1) ) % 4;
+          const tKey = TEAM_NAMES[tIndex];
+
+          if (!crossBest2Scores[tKey]) crossBest2Scores[tKey] = [];
+          if (crossHasBirdie[tKey] === undefined) crossHasBirdie[tKey] = false;
 
           if (hScores[pId]) {
             const rawScore = hScores[pId].score;
@@ -601,9 +676,9 @@
             playerTotals[pId].gross += rawScore;
             playerTotals[pId].net += netScore;
 
-            groupBest2Scores[g].push(netScore);
+            crossBest2Scores[tKey].push(netScore);
 
-            if (rawScore < par) groupHasBirdie[g] = true;
+            if (rawScore < par) crossHasBirdie[tKey] = true;
 
             const oly = hScores[pId].olympic;
             let rate = 0;
@@ -663,46 +738,70 @@
           }
         }
 
-        const groups = Object.keys(vegasTeamTotals);
-        let groupVegasCode = {};
+        // ホールごとのクロスチーム総当たり計算（チーム獲得Pを個人へ還元）
+        const teams = Object.keys(crossTeamTotals);
+        let teamVegasCode = {};
 
-        groups.forEach(g => {
-          if (groupBest2Scores[g] && groupBest2Scores[g].length >= 2) {
-            groupBest2Scores[g].sort((a, b) => a - b);
-            groupVegasCode[g] = {
-              best2: [groupBest2Scores[g][0], groupBest2Scores[g][1]],
-              hasBirdie: groupHasBirdie[g]
+        teams.forEach(tKey => {
+          if (crossBest2Scores[tKey] && crossBest2Scores[tKey].length >= 2) {
+            crossBest2Scores[tKey].sort((a, b) => a - b);
+            teamVegasCode[tKey] = {
+              best2: [crossBest2Scores[tKey][0], crossBest2Scores[tKey][1]],
+              hasBirdie: crossHasBirdie[tKey]
             };
           }
         });
 
-        for (let i = 0; i < groups.length; i++) {
-          for (let j = i + 1; j < groups.length; j++) {
-            const gA = groups[i];
-            const gB = groups[j];
+        for (let i = 0; i < teams.length; i++) {
+          for (let j = i + 1; j < teams.length; j++) {
+            const tA = teams[i];
+            const tB = teams[j];
 
-            if (groupVegasCode[gA] && groupVegasCode[gB]) {
-              const codeA = buildVegasScore(groupVegasCode[gA].best2, par, groupVegasCode[gB].hasBirdie);
-              const codeB = buildVegasScore(groupVegasCode[gB].best2, par, groupVegasCode[gA].hasBirdie);
+            if (teamVegasCode[tA] && teamVegasCode[tB]) {
+              const codeA = buildVegasScore(teamVegasCode[tA].best2, par, teamVegasCode[tB].hasBirdie);
+              const codeB = buildVegasScore(teamVegasCode[tB].best2, par, teamVegasCode[tA].hasBirdie);
 
               const diff = codeB - codeA;
-              vegasTeamTotals[gA] += diff;
-              vegasTeamTotals[gB] -= diff;
+              crossTeamTotals[tA] += diff;
+              crossTeamTotals[tB] -= diff;
+
+              // 該当ホールでそのチームに属していたプレイヤーにそれぞれ獲得Pを加算
+              Object.keys(players).forEach(pId => {
+                const pGroup = players[pId].group;
+                const hOrder = (hScores[pId] && hScores[pId].order) || players[pId].pos || 1;
+                const tIndex = ( (pGroup - 1) + (hOrder - 1) ) % 4;
+                const pTeam = TEAM_NAMES[tIndex];
+
+                if (pTeam === tA) playerTotals[pId].teamPoints += diff;
+                if (pTeam === tB) playerTotals[pId].teamPoints -= diff;
+              });
             }
           }
         }
       });
 
+      if (totalPlayersCount > 0) {
+        let netSum = 0;
+        Object.values(playerTotals).forEach(p => { netSum += p.net; });
+        const avgNet = netSum / totalPlayersCount;
+
+        Object.keys(playerTotals).forEach(pId => {
+          const sP = Math.round((avgNet - playerTotals[pId].net) * 10) / 10;
+          playerTotals[pId].scorePoints = sP;
+          playerTotals[pId].totalPoints = Math.round((sP + playerTotals[pId].olyPoints + playerTotals[pId].teamPoints) * 10) / 10;
+        });
+      }
+
       const teamBody = document.getElementById('team-rank-body');
       teamBody.innerHTML = '';
-      const sortedTeams = Object.keys(vegasTeamTotals).sort((a, b) => vegasTeamTotals[b] - vegasTeamTotals[a]);
+      const sortedTeams = Object.keys(crossTeamTotals).sort((a, b) => crossTeamTotals[b] - crossTeamTotals[a]);
 
-      sortedTeams.forEach((g, idx) => {
+      sortedTeams.forEach((tKey, idx) => {
         teamBody.innerHTML += `
           <tr class="${idx === 0 ? 'rank-1' : ''}">
             <td>${idx + 1}位</td>
-            <td><span class="badge-team">${g}組目 チーム</span></td>
-            <td><b>${vegasTeamTotals[g] >= 0 ? '+' : ''}${vegasTeamTotals[g]} P</b></td>
+            <td><span class="badge-team">${tKey}</span></td>
+            <td><b>${crossTeamTotals[tKey] >= 0 ? '+' : ''}${crossTeamTotals[tKey]} P</b></td>
           </tr>
         `;
       });
@@ -711,20 +810,25 @@
       playerBody.innerHTML = '';
       let sortedPlayers = Object.values(playerTotals);
 
-      if (playerSortMode === 'point') {
+      if (playerSortMode === 'game') {
         sortedPlayers.sort((a, b) => b.olyPoints - a.olyPoints);
-      } else {
+      } else if (playerSortMode === 'net') {
         sortedPlayers.sort((a, b) => a.net - b.net);
+      } else {
+        sortedPlayers.sort((a, b) => b.totalPoints - a.totalPoints);
       }
 
       sortedPlayers.forEach((p, idx) => {
         playerBody.innerHTML += `
           <tr class="${idx === 0 ? 'rank-1' : ''}">
             <td>${idx + 1}位</td>
-            <td><span class="badge-team">${p.group}組</span></td>
+            <td>${p.group}組</td>
             <td><b>${p.name}</b></td>
-            <td>${p.net} 打 (${p.gross})</td>
-            <td><b>${p.olyPoints >= 0 ? '+' : ''}${p.olyPoints} P</b></td>
+            <td>${p.net} (${p.gross})</td>
+            <td>${p.scorePoints >= 0 ? '+' : ''}${p.scorePoints}</td>
+            <td>${p.olyPoints >= 0 ? '+' : ''}${p.olyPoints}</td>
+            <td>${p.teamPoints >= 0 ? '+' : ''}${p.teamPoints}</td>
+            <td><b>${p.totalPoints >= 0 ? '+' : ''}${p.totalPoints} P</b></td>
           </tr>
         `;
       });
