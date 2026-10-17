@@ -42,13 +42,20 @@
     th { background: #eef2f5; }
 
     .rank-1 { background: #fef08a; font-weight: bold; }
-    .badge-team { padding: 2px 4px; border-radius: 4px; font-weight: bold; font-size: 0.75em; background: #dbeafe; color: #1e3a8a; }
+    
+    /* チームカラーバッジスタイル */
+    .badge-team { padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75em; display: inline-block; }
+    .badge-team-A { background: #dbeafe; color: #1e3a8a; border: 1px solid #bfdbfe; }
+    .badge-team-B { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+    .badge-team-C { background: #fef9c3; color: #854d0e; border: 1px solid #fef08a; }
+    .badge-team-D { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+
     .group-setup-box { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
     .group-setup-title { font-weight: bold; color: #1e3a8a; font-size: 0.9em; margin-bottom: 6px; }
     
     .player-card-setup { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; }
     .player-inputs-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; }
-    .penalty-checkboxes { display: flex; gap: 8px; font-size: 0.75em; margin-top: 6px; background: #fff1f2; padding: 4px 6px; border-radius: 4px; border: 1px solid #fecdd3; }
+    .penalty-checkboxes { display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.75em; margin-top: 6px; background: #fff1f2; padding: 4px 6px; border-radius: 4px; border: 1px solid #fecdd3; }
     .penalty-checkboxes label { cursor: pointer; display: flex; align-items: center; gap: 2px; }
 
     .btn-order { background: #f1f5f9; border: 1px solid #cbd5e1; font-size: 0.75em; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: auto; display: inline-block; }
@@ -138,8 +145,8 @@
 
   <!-- リーダーボード（チームラスベガス ＆ 個人総合） -->
   <div class="card" id="board-sec" style="display:none;">
-    <h2>🏆 横断チーム対抗 順位（毎ホール変則ラスベガスP）</h2>
-    <div style="font-size:0.75em; color:#64748b; margin-bottom:6px;">※打順（1〜4打手）に応じてチームA〜Dが毎ホール自動シャッフルされます</div>
+    <h2>🏆 横断チーム対抗 順位（オナー自動判別ラスベガスP）</h2>
+    <div style="font-size:0.75em; color:#64748b; margin-bottom:6px;">※前ホールの成績からオナー（打順）を自動判定し、チームA〜Dを毎ホールシャッフルします</div>
     <table>
       <thead>
         <tr>
@@ -179,7 +186,7 @@
     </table>
     <div style="font-size:0.7em; color:#64748b; margin-top:6px;">
       ※スコアP＝平均ネット打数−自分のネット打数<br>
-      ※チームP＝参加した横断チームの累積獲得P<br>
+      ※チームP＝オナー打順で自動シャッフルされた横断チームの累積獲得P<br>
       ※総合P＝スコアP ＋ ゲームP ＋ チームP（完全ゼロサム）
     </div>
   </div>
@@ -199,6 +206,7 @@
     let globalData = { players: {}, scores: {}, pars: {}, chips: {}, startCourse: "OUT", groupCount: 3 };
 
     const TEAM_NAMES = ["チームA", "チームB", "チームC", "チームD"];
+    const TEAM_CLASSES = { "チームA": "badge-team-A", "チームB": "badge-team-B", "チームC": "badge-team-C", "チームD": "badge-team-D" };
 
     window.onload = function() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -444,16 +452,12 @@
       }
     }
 
-    // 該当ホールの打順を入れ替える（画面上＋一時保持）
-    function changeHoleOrder(pId, direction) {
-      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
+    function changeInitialPos(pId, direction) {
+      if (selectedHole !== getHoleSequence()[0]) return;
+
       const groupPlayers = Object.entries(globalData.players || {})
         .filter(([id, p]) => p.group === myGroup)
-        .sort((a, b) => {
-          const orderA = (holeScores[a[0]] && holeScores[a[0]].order) || a[1].pos || 1;
-          const orderB = (holeScores[b[0]] && holeScores[b[0]].order) || b[1].pos || 1;
-          return orderA - orderB;
-        });
+        .sort((a, b) => (a[1].pos || 1) - (b[1].pos || 1));
 
       const idx = groupPlayers.findIndex(([id]) => id === pId);
       if (idx === -1) return;
@@ -461,14 +465,11 @@
       const targetIdx = idx + direction;
       if (targetIdx < 0 || targetIdx >= groupPlayers.length) return;
 
-      const curId = groupPlayers[idx][0];
-      const targetId = groupPlayers[targetIdx][0];
+      const curPos = groupPlayers[idx][1].pos || (idx + 1);
+      const targetPos = groupPlayers[targetIdx][1].pos || (targetIdx + 1);
 
-      const curOrder = (holeScores[curId] && holeScores[curId].order) || (idx + 1);
-      const targetOrder = (holeScores[targetId] && holeScores[targetId].order) || (targetIdx + 1);
-
-      db.ref(`rooms/${roomId}/scores/${selectedHole}/${curId}/order`).set(targetOrder);
-      db.ref(`rooms/${roomId}/scores/${selectedHole}/${targetId}/order`).set(curOrder);
+      db.ref(`rooms/${roomId}/players/${pId}/pos`).set(targetPos);
+      db.ref(`rooms/${roomId}/players/${groupPlayers[targetIdx][0]}/pos`).set(curPos);
     }
 
     function renderInputForm() {
@@ -477,22 +478,28 @@
       const list = document.getElementById('player-input-list');
       const totalGroups = globalData.groupCount || 3;
       let isChipHole = (currentHolePar === 3 || currentHolePar === 5);
+      const isStartHole = (selectedHole === getHoleSequence()[0]);
 
-      let headerInfo = `【${selectedHole}番ホール (PAR${currentHolePar})】打順＆スコア・ペナルティ入力`;
+      let headerInfo = `【${selectedHole}番ホール (PAR${currentHolePar})】スコア＆イベント入力`;
+      if (isStartHole) {
+        headerInfo += `<div style="font-size:0.75em; color:#2563eb; font-weight:normal; margin-top:2px;">※1ホール目のみ初期打順（1〜4打手）をボタンで変更可能です</div>`;
+      } else {
+        headerInfo += `<div style="font-size:0.75em; color:#059669; font-weight:normal; margin-top:2px;">※2ホール目以降の打順（オナー）は前ホールの成績から自動判別されます</div>`;
+      }
       if (isChipHole && myGroup !== totalGroups) {
         headerInfo += `<div style="font-size:0.75em; color:#d97706; font-weight:normal; margin-top:2px;">※ニアピン・ドラコンの入力は最終組（${totalGroups}組目）の代表者が行います</div>`;
       }
 
       list.innerHTML = `<p style="font-size:0.85em; font-weight:bold; margin-bottom:8px;">${headerInfo}</p>`;
 
-      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
+      // 入力画面上の名前順は1組目P1〜P4の固定順（pos順）で並び替えを行わない
       const groupPlayers = Object.entries(globalData.players || {})
         .filter(([id, p]) => p.group === myGroup)
-        .sort((a, b) => {
-          const orderA = (holeScores[a[0]] && holeScores[a[0]].order) || a[1].pos || 1;
-          const orderB = (holeScores[b[0]] && holeScores[b[0]].order) || b[1].pos || 1;
-          return orderA - orderB;
-        });
+        .sort((a, b) => (a[1].pos || 1) - (b[1].pos || 1));
+
+      const seq = getHoleSequence();
+      const dynamicOrders = computeDynamicHoleOrders(seq, globalData.players || {}, globalData.scores || {}, globalData.pars || {});
+      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
 
       groupPlayers.forEach(([pId, p], idx) => {
         const curData = holeScores[pId] || {};
@@ -501,20 +508,23 @@
         const curWater = curData.water || false;
         const curOb = curData.ob || false;
         const curPutt = curData.putt3 || false;
+        const curBunker = curData.bunker || false;
 
-        const hOrder = curData.order || (idx + 1);
-        const tIndex = ( (myGroup - 1) + (hOrder - 1) ) % 4;
+        // 打順（オナー）から該当ホールのチームを取得してチームカラーバッジを表示
+        const autoOrder = (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][pId]) || p.pos || 1;
+        const tIndex = ( (myGroup - 1) + (autoOrder - 1) ) % 4;
         const teamLabel = TEAM_NAMES[tIndex];
+        const teamClass = TEAM_CLASSES[teamLabel] || "badge-team-A";
 
         list.innerHTML += `
           <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:8px; border-radius:6px; margin-bottom:8px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
               <div style="font-weight:bold; font-size:0.9em;">
-                ${hOrder}打手: ${p.name} (HDCP:${p.hdcp}) <span class="badge-team">${teamLabel}</span>
+                ${p.name} (HDCP:${p.hdcp}) <span class="badge-team ${teamClass}">${teamLabel} (${autoOrder}打手)</span>
               </div>
               <div>
-                ${idx > 0 ? `<button class="btn-order" onclick="changeHoleOrder('\${pId}', -1)">▲上へ</button>` : ''}
-                ${idx < groupPlayers.length - 1 ? `<button class="btn-order" onclick="changeHoleOrder('\${pId}', 1)">▼下へ</button>` : ''}
+                ${isStartHole && idx > 0 ? `<button class="btn-order" onclick="changeInitialPos('\${pId}', -1)">▲上へ</button>` : ''}
+                ${isStartHole && idx < groupPlayers.length - 1 ? `<button class="btn-order" onclick="changeInitialPos('\${pId}', 1)">▼下へ</button>` : ''}
               </div>
             </div>
 
@@ -542,6 +552,7 @@
               <label><input type="checkbox" id="input-water-${pId}" ${curWater ? 'checked' : ''}>🌊池</label>
               <label><input type="checkbox" id="input-ob-${pId}" ${curOb ? 'checked' : ''}>💥OB</label>
               <label><input type="checkbox" id="input-putt3-${pId}" ${curPutt ? 'checked' : ''}>⛳3パット</label>
+              <label><input type="checkbox" id="input-bunker-${pId}" ${curBunker ? 'checked' : ''}>⏳バンカー</label>
             </div>
           </div>
         `;
@@ -558,22 +569,16 @@
     }
 
     function saveHoleScores() {
-      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
       const groupPlayers = Object.entries(globalData.players || {})
-        .filter(([id, p]) => p.group === myGroup)
-        .sort((a, b) => {
-          const orderA = (holeScores[a[0]] && holeScores[a[0]].order) || a[1].pos || 1;
-          const orderB = (holeScores[b[0]] && holeScores[b[0]].order) || b[1].pos || 1;
-          return orderA - orderB;
-        });
+        .filter(([id, p]) => p.group === myGroup);
 
-      groupPlayers.forEach(([pId], idx) => {
+      groupPlayers.forEach(([pId]) => {
         const scoreVal = parseInt(document.getElementById(`input-score-${pId}`).value) || currentHolePar;
         const olyVal = document.getElementById(`input-oly-${pId}`).value;
         const waterVal = document.getElementById(`input-water-${pId}`).checked;
         const obVal = document.getElementById(`input-ob-${pId}`).checked;
         const puttVal = document.getElementById(`input-putt3-${pId}`).checked;
-        const curOrder = (holeScores[pId] && holeScores[pId].order) || (idx + 1);
+        const bunkerVal = document.getElementById(`input-bunker-${pId}`).checked;
 
         db.ref(`rooms/${roomId}/scores/${selectedHole}/${pId}`).set({
           score: scoreVal,
@@ -581,7 +586,7 @@
           water: waterVal,
           ob: obVal,
           putt3: puttVal,
-          order: curOrder
+          bunker: bunkerVal
         });
       });
 
@@ -626,6 +631,56 @@
       }
     }
 
+    function computeDynamicHoleOrders(seq, players, scores, pars) {
+      let holeOrders = {};
+
+      let groupsList = {};
+      Object.entries(players).forEach(([pId, p]) => {
+        if (!groupsList[p.group]) groupsList[p.group] = [];
+        groupsList[p.group].push({ id: pId, pos: p.pos || 1 });
+      });
+
+      Object.keys(groupsList).forEach(g => {
+        let prevOrderList = groupsList[g].sort((a, b) => a.pos - b.pos).map(x => x.id);
+
+        seq.forEach((h, hIdx) => {
+          if (!holeOrders[h]) holeOrders[h] = {};
+
+          if (hIdx === 0) {
+            prevOrderList.forEach((pId, idx) => {
+              holeOrders[h][pId] = idx + 1;
+            });
+          } else {
+            const prevHole = seq[hIdx - 1];
+            const prevPar = pars[prevHole] || 4;
+            const prevHScores = scores[prevHole] || {};
+
+            let currentRankings = prevOrderList.map(pId => {
+              const pData = prevHScores[pId];
+              const pRaw = pData ? pData.score : prevPar;
+              const pNet = getAdjustedScore(pRaw, players[pId], prevPar);
+              const prevPosIdx = prevOrderList.indexOf(pId);
+              return { id: pId, net: pNet, prevPos: prevPosIdx };
+            });
+
+            currentRankings.sort((a, b) => {
+              if (a.net !== b.net) return a.net - b.net;
+              return a.prevPos - b.prevPos;
+            });
+
+            const newOrderList = currentRankings.map(x => x.id);
+            newOrderList.forEach((pId, idx) => {
+              holeOrders[h][pId] = idx + 1;
+            });
+
+            prevOrderList = newOrderList;
+          }
+        });
+      });
+
+      return holeOrders;
+    }
+
     function calculateLeaderboard() {
       const players = globalData.players || {};
       const scores = globalData.scores || {};
@@ -651,6 +706,7 @@
       });
 
       const seq = getHoleSequence();
+      const dynamicOrders = computeDynamicHoleOrders(seq, players, scores, pars);
 
       seq.forEach(h => {
         const hScores = scores[h] || {};
@@ -659,11 +715,10 @@
         let crossBest2Scores = {};
         let crossHasBirdie = {};
 
-        // 毎ホールごとに各人の「打順（order）」に基づいて所属チームを動的判定
         Object.keys(players).forEach(pId => {
           const pGroup = players[pId].group;
-          const hOrder = (hScores[pId] && hScores[pId].order) || players[pId].pos || 1;
-          const tIndex = ( (pGroup - 1) + (hOrder - 1) ) % 4;
+          const autoOrder = (dynamicOrders[h] && dynamicOrders[h][pId]) || players[pId].pos || 1;
+          const tIndex = ( (pGroup - 1) + (autoOrder - 1) ) % 4;
           const tKey = TEAM_NAMES[tIndex];
 
           if (!crossBest2Scores[tKey]) crossBest2Scores[tKey] = [];
@@ -699,6 +754,7 @@
             if (hScores[pId].water) pCount++;
             if (hScores[pId].ob) pCount++;
             if (hScores[pId].putt3) pCount++;
+            if (hScores[pId].bunker) pCount++;
 
             if (pCount > 0 && totalPlayersCount > 1) {
               const penaltyPerPlayer = 1 * pCount;
@@ -738,7 +794,6 @@
           }
         }
 
-        // ホールごとのクロスチーム総当たり計算（チーム獲得Pを個人へ還元）
         const teams = Object.keys(crossTeamTotals);
         let teamVegasCode = {};
 
@@ -765,11 +820,10 @@
               crossTeamTotals[tA] += diff;
               crossTeamTotals[tB] -= diff;
 
-              // 該当ホールでそのチームに属していたプレイヤーにそれぞれ獲得Pを加算
               Object.keys(players).forEach(pId => {
                 const pGroup = players[pId].group;
-                const hOrder = (hScores[pId] && hScores[pId].order) || players[pId].pos || 1;
-                const tIndex = ( (pGroup - 1) + (hOrder - 1) ) % 4;
+                const autoOrder = (dynamicOrders[h] && dynamicOrders[h][pId]) || players[pId].pos || 1;
+                const tIndex = ( (pGroup - 1) + (autoOrder - 1) ) % 4;
                 const pTeam = TEAM_NAMES[tIndex];
 
                 if (pTeam === tA) playerTotals[pId].teamPoints += diff;
@@ -797,10 +851,11 @@
       const sortedTeams = Object.keys(crossTeamTotals).sort((a, b) => crossTeamTotals[b] - crossTeamTotals[a]);
 
       sortedTeams.forEach((tKey, idx) => {
+        const teamClass = TEAM_CLASSES[tKey] || "badge-team-A";
         teamBody.innerHTML += `
           <tr class="${idx === 0 ? 'rank-1' : ''}">
             <td>${idx + 1}位</td>
-            <td><span class="badge-team">${tKey}</span></td>
+            <td><span class="badge-team ${teamClass}">${tKey}</span></td>
             <td><b>${crossTeamTotals[tKey] >= 0 ? '+' : ''}${crossTeamTotals[tKey]} P</b></td>
           </tr>
         `;
