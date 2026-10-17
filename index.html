@@ -65,9 +65,13 @@
     .player-card-input { background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
     .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     
-    .score-input-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .score-input-row label { font-size: 0.8em; font-weight: bold; min-width: 40px; }
-    .score-input-row input { width: 80px; font-weight: bold; text-align: center; font-size: 1.1em; margin: 0; padding: 6px; }
+    /* 打数 ➕ ➖ ステッパーボタンUI */
+    .score-stepper-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .score-stepper-row label { font-size: 0.8em; font-weight: bold; min-width: 40px; }
+    .stepper-box { display: flex; align-items: center; background: white; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; }
+    .btn-step { width: 36px; height: 36px; padding: 0; font-size: 1.2em; font-weight: bold; background: #e2e8f0; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0; }
+    .btn-step:active { background: #cbd5e1; }
+    .stepper-val { width: 44px; text-align: center; font-size: 1.1em; font-weight: bold; color: #1e293b; }
 
     .btn-grid-oly { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 8px; }
     .btn-oly { padding: 8px 2px; font-size: 0.72em; font-weight: bold; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 6px; cursor: pointer; text-align: center; }
@@ -494,11 +498,19 @@
       }
     }
 
-    // 全ホールで打順の上下入れ替えを可能にする
+    // 打順の上下入れ替え機能（scores/{selectedHole}/{pId}/orderに直書き）
     function changePlayerOrder(pId, direction) {
+      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
+      const seq = getHoleSequence();
+      const dynamicOrders = computeDynamicHoleOrders(seq, globalData.players || {}, globalData.scores || {}, globalData.pars || {});
+
       const groupPlayers = Object.entries(globalData.players || {})
         .filter(([id, p]) => p.group === myGroup)
-        .sort((a, b) => (a[1].pos || 1) - (b[1].pos || 1));
+        .sort((a, b) => {
+          const orderA = (holeScores[a[0]] && holeScores[a[0]].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][a[0]]) || a[1].pos || 1;
+          const orderB = (holeScores[b[0]] && holeScores[b[0]].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][b[0]]) || b[1].pos || 1;
+          return orderA - orderB;
+        });
 
       const idx = groupPlayers.findIndex(([id]) => id === pId);
       if (idx === -1) return;
@@ -506,12 +518,24 @@
       const targetIdx = idx + direction;
       if (targetIdx < 0 || targetIdx >= groupPlayers.length) return;
 
-      const curPos = groupPlayers[idx][1].pos || (idx + 1);
-      const targetPos = groupPlayers[targetIdx][1].pos || (targetIdx + 1);
+      const curId = groupPlayers[idx][0];
+      const targetId = groupPlayers[targetIdx][0];
 
-      // 即座にFirebaseを更新（リスナーによって画面が自動再描画されます）
-      db.ref(`rooms/${roomId}/players/${pId}/pos`).set(targetPos);
-      db.ref(`rooms/${roomId}/players/${groupPlayers[targetIdx][0]}/pos`).set(curPos);
+      const curOrder = (holeScores[curId] && holeScores[curId].order) || (idx + 1);
+      const targetOrder = (holeScores[targetId] && holeScores[targetId].order) || (targetIdx + 1);
+
+      db.ref(`rooms/${roomId}/scores/${selectedHole}/${curId}/order`).set(targetOrder);
+      db.ref(`rooms/${roomId}/scores/${selectedHole}/${targetId}/order`).set(curOrder);
+    }
+
+    // 打数 ➕ ➖ ステッパー処理
+    function changeScoreStep(pId, delta) {
+      if (!tempInputState[pId]) tempInputState[pId] = {};
+      const el = document.getElementById(`stepper-val-${pId}`);
+      let curVal = parseInt(el.innerText) || currentHolePar;
+      curVal = Math.max(1, curVal + delta);
+      el.innerText = curVal;
+      tempInputState[pId].score = curVal;
     }
 
     function toggleOly(pId, val) {
@@ -551,21 +575,25 @@
       let isChipHole = (currentHolePar === 3 || currentHolePar === 5);
 
       let headerInfo = `【${selectedHole}番ホール (PAR${currentHolePar})】スコア＆イベント入力`;
-      headerInfo += `<div style="font-size:0.75em; color:#2563eb; font-weight:normal; margin-top:2px;">※ボタン操作で打順（1〜4打手）をいつでも入れ替え可能です</div>`;
+      headerInfo += `<div style="font-size:0.75em; color:#2563eb; font-weight:normal; margin-top:2px;">※「▲上へ」「▼下へ」ボタンで各ホールの打順（1〜4打手）を入れ替え可能です</div>`;
       if (isChipHole && myGroup !== totalGroups) {
         headerInfo += `<div style="font-size:0.75em; color:#d97706; font-weight:normal; margin-top:2px;">※ニアピン・ドラコンの入力は最終組（${totalGroups}組目）の代表者が行います</div>`;
       }
 
       list.innerHTML = `<p style="font-size:0.85em; font-weight:bold; margin-bottom:8px;">${headerInfo}</p>`;
 
-      const groupPlayers = Object.entries(globalData.players || {})
-        .filter(([id, p]) => p.group === myGroup)
-        .sort((a, b) => (a[1].pos || 1) - (b[1].pos || 1));
-
       const seq = getHoleSequence();
       const dynamicOrders = computeDynamicHoleOrders(seq, globalData.players || {}, globalData.scores || {}, globalData.pars || {});
       const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
       const activeTeams = getActiveTeamNames();
+
+      const groupPlayers = Object.entries(globalData.players || {})
+        .filter(([id, p]) => p.group === myGroup)
+        .sort((a, b) => {
+          const orderA = (holeScores[a[0]] && holeScores[a[0]].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][a[0]]) || a[1].pos || 1;
+          const orderB = (holeScores[b[0]] && holeScores[b[0]].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][b[0]]) || b[1].pos || 1;
+          return orderA - orderB;
+        });
 
       groupPlayers.forEach(([pId, p], idx) => {
         const curData = holeScores[pId] || {};
@@ -573,6 +601,7 @@
         
         if (!tempInputState[pId]) {
           tempInputState[pId] = {
+            score: curScore,
             olympic: curData.olympic || "",
             water: curData.water || false,
             ob: curData.ob || false,
@@ -581,7 +610,7 @@
           };
         }
 
-        const autoOrder = (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][pId]) || p.pos || 1;
+        const autoOrder = (curData.order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][pId]) || p.pos || (idx + 1);
         const tIndex = ( (myGroup - 1) + (autoOrder - 1) ) % activeTeams.length;
         const teamLabel = activeTeams[tIndex];
         const teamClass = TEAM_CLASSES[teamLabel] || "badge-team-A";
@@ -600,12 +629,18 @@
               </div>
             </div>
 
-            <div class="score-input-row">
+            <!-- 打数 ➕ ➖ ステッパー -->
+            <div class="score-stepper-row">
               <label>打数:</label>
-              <input type="number" id="input-score-${pId}" value="${curScore}" min="1">
+              <div class="stepper-box">
+                <button type="button" class="btn-step" onclick="changeScoreStep('${pId}', -1)">➖</button>
+                <div class="stepper-val" id="stepper-val-${pId}">${st.score}</div>
+                <button type="button" class="btn-step" onclick="changeScoreStep('${pId}', 1)">➕</button>
+              </div>
               <span style="font-size:0.75em; color:#64748b;">打 (PAR${currentHolePar})</span>
             </div>
 
+            <!-- オリンピックボタン -->
             <div style="font-size:0.7em; font-weight:bold; color:#475569; margin-bottom:2px;">オリンピック:</div>
             <div class="btn-grid-oly">
               <button type="button" class="btn-oly ${st.olympic==='gold'?'active':''}" id="btn-oly-${pId}-gold" onclick="toggleOly('${pId}', 'gold')">🥇金(+4)</button>
@@ -615,6 +650,7 @@
               <button type="button" class="btn-oly ${st.olympic==='dia'?'active':''}" id="btn-oly-${pId}-dia" onclick="toggleOly('${pId}', 'dia')">💎ダイヤ(+5)</button>
             </div>
 
+            <!-- ペナルティボタン -->
             <div style="font-size:0.7em; font-weight:bold; color:#be123c; margin-bottom:2px;">罰符 (-1P):</div>
             <div class="btn-grid-pen">
               <button type="button" class="btn-pen ${st.water?'active':''}" id="btn-pen-${pId}-water" onclick="togglePen('${pId}', 'water')">🌊池ポチャ</button>
@@ -640,9 +676,14 @@
       const groupPlayers = Object.entries(globalData.players || {})
         .filter(([id, p]) => p.group === myGroup);
 
-      groupPlayers.forEach(([pId]) => {
-        const scoreVal = parseInt(document.getElementById(`input-score-${pId}`).value) || currentHolePar;
+      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
+      const seq = getHoleSequence();
+      const dynamicOrders = computeDynamicHoleOrders(seq, globalData.players || {}, globalData.scores || {}, globalData.pars || {});
+
+      groupPlayers.forEach(([pId, p], idx) => {
         const st = tempInputState[pId] || {};
+        const scoreVal = st.score || currentHolePar;
+        const curOrder = (holeScores[pId] && holeScores[pId].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][pId]) || p.pos || (idx + 1);
 
         db.ref(`rooms/${roomId}/scores/${selectedHole}/${pId}`).set({
           score: scoreVal,
@@ -650,7 +691,8 @@
           water: !!st.water,
           ob: !!st.ob,
           putt3: !!st.putt3,
-          bunker: !!st.bunker
+          bunker: !!st.bunker,
+          order: curOrder
         });
       });
 
@@ -712,7 +754,8 @@
 
           if (hIdx === 0) {
             prevOrderList.forEach((pId, idx) => {
-              holeOrders[h][pId] = idx + 1;
+              const explicitOrder = scores[h] && scores[h][pId] && scores[h][pId].order;
+              holeOrders[h][pId] = explicitOrder || (idx + 1);
             });
           } else {
             const prevHole = seq[hIdx - 1];
@@ -734,7 +777,8 @@
 
             const newOrderList = currentRankings.map(x => x.id);
             newOrderList.forEach((pId, idx) => {
-              holeOrders[h][pId] = idx + 1;
+              const explicitOrder = scores[h] && scores[h][pId] && scores[h][pId].order;
+              holeOrders[h][pId] = explicitOrder || (idx + 1);
             });
 
             prevOrderList = newOrderList;
@@ -791,7 +835,7 @@
 
         Object.keys(players).forEach(pId => {
           const pGroup = players[pId].group;
-          const autoOrder = (dynamicOrders[h] && dynamicOrders[h][pId]) || players[pId].pos || 1;
+          const autoOrder = (hScores[pId] && hScores[pId].order) || (dynamicOrders[h] && dynamicOrders[h][pId]) || players[pId].pos || 1;
           const tIndex = ( (pGroup - 1) + (autoOrder - 1) ) % activeTeams.length;
           const tKey = activeTeams[tIndex];
 
@@ -933,7 +977,7 @@
 
               Object.keys(players).forEach(pId => {
                 const pGroup = players[pId].group;
-                const autoOrder = (dynamicOrders[h] && dynamicOrders[h][pId]) || players[pId].pos || 1;
+                const autoOrder = (hScores[pId] && hScores[pId].order) || (dynamicOrders[h] && dynamicOrders[h][pId]) || players[pId].pos || 1;
                 const tIndex = ( (pGroup - 1) + (autoOrder - 1) ) % activeTeams.length;
                 const pTeam = activeTeams[tIndex];
 
