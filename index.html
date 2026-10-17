@@ -126,7 +126,7 @@
       </div>
     </div>
 
-    <!-- 新PAR設定エリア（PAR3とPAR5のホールのみ選択） -->
+    <!-- PAR設定エリア -->
     <div style="margin-top:15px; background:#f8fafc; border:1px solid #cbd5e1; padding:10px; border-radius:8px;">
       <div style="font-weight:bold; font-size:0.85em; color:#1e3a8a; margin-bottom:4px;">⛳️ PAR3・PAR5の対象ホール指定</div>
       <div style="font-size:0.72em; color:#64748b; margin-bottom:8px;">※選択しなかった残り10ホールは自動的にすべてPAR4となります。</div>
@@ -300,7 +300,6 @@
       }
     };
 
-    // PAR3・PAR5の選択ドロップダウンの初期生成
     function initParDropdownOptions() {
       const defaultPar3 = [3, 7, 12, 16];
       const defaultPar5 = [5, 9, 13, 18];
@@ -415,7 +414,6 @@
       const teamCount = parseInt(document.getElementById('teamCountSelect').value);
       const startCourse = document.getElementById('startCourseSelect').value;
       
-      // PAR設定の読み取り（デフォルトPAR4、指定ホールのみPAR3/PAR5）
       let pars = {};
       for (let h = 1; h <= 18; h++) { pars[h] = 4; }
 
@@ -427,7 +425,6 @@
         par5Holes.push(parseInt(document.getElementById(`par5-select-${i}`).value));
       }
 
-      // 重複チェック
       const allSelected = [...par3Holes, ...par5Holes];
       const hasDuplicates = new Set(allSelected).size !== allSelected.length;
       if (hasDuplicates) {
@@ -783,9 +780,9 @@
             <div style="font-size:0.7em; font-weight:bold; color:#be123c; margin-bottom:2px;">罰符 (-1P):</div>
             <div class="btn-grid-pen">
               <button type="button" class="btn-pen ${st.water?'active':''}" id="btn-pen-${pId}-water" onclick="togglePen('${pId}', 'water')">🌊池ポチャ</button>
-              <button type="button" class="btn-pen ${st.ob?'active':''}" id="btn-pen('${pId}', 'ob')">💥OB</button>
-              <button type="button" class="btn-pen ${st.putt3?'active':''}" id="btn-pen('${pId}', 'putt3')">⛳️3パット</button>
-              <button type="button" class="btn-pen ${st.bunker?'active':''}" id="btn-pen('${pId}', 'bunker')">⏳バンカー</button>
+              <button type="button" class="btn-pen ${st.ob?'active':''}" id="btn-pen-${pId}-ob" onclick="togglePen('${pId}', 'ob')">💥OB</button>
+              <button type="button" class="btn-pen ${st.putt3?'active':''}" id="btn-pen-${pId}-putt3" onclick="togglePen('${pId}', 'putt3')">⛳️3パット</button>
+              <button type="button" class="btn-pen ${st.bunker?'active':''}" id="btn-pen-${pId}-bunker" onclick="togglePen('${pId}', 'bunker')">⏳バンカー</button>
             </div>
           </div>
         `;
