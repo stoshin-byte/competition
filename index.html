@@ -79,6 +79,9 @@
     .btn-grid-pen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
     .btn-pen { padding: 8px 2px; font-size: 0.72em; font-weight: bold; border: 1px solid #fecdd3; background: #fff1f2; color: #9f1239; border-radius: 6px; cursor: pointer; text-align: center; }
     .btn-pen.active { background: #e11d48; color: white; border-color: #be123c; box-shadow: inset 0 2px 4px rgba(0,0,0,0.15); }
+
+    .past-room-item { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .past-room-item:hover { background: #e2e8f0; }
   </style>
 </head>
 <body>
@@ -87,7 +90,7 @@
 
   <!-- 幹事用 設定画面 -->
   <div class="card" id="setup-sec">
-    <h2>👑 幹事用 コンペ作成 & メンバー設定</h2>
+    <h2>👑 幹事用 コンペ新規作成</h2>
     
     <label>コンペ名 / ルーム名</label>
     <input type="text" id="roomTitle" value="第1回ゴルフコンペ" placeholder="例: サークルコンペ">
@@ -114,6 +117,12 @@
     <div id="group-inputs-container" style="margin-top:15px;"></div>
 
     <button class="btn-submit" onclick="createTournament()">コンペを作成してLINE共有リンクを発行</button>
+
+    <!-- 過去コンペ履歴一覧エリア（パターンB） -->
+    <div style="margin-top:25px; border-top:2px solid #cbd5e1; padding-top:12px;">
+      <h2>📚 過去のコンペ履歴（過去ラウンドの振り返り）</h2>
+      <div id="past-rooms-list" style="font-size:0.85em; color:#64748b;">(読込中...)</div>
+    </div>
   </div>
 
   <!-- LINE共有リンク表示エリア -->
@@ -166,7 +175,7 @@
   <!-- リーダーボード & 詳細履歴 -->
   <div class="card" id="board-sec" style="display:none;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h2 style="margin:0; border:none;">👤 個人総合リーダーボード</h2>
+      <h2 style="margin:0; border:none;" id="board-room-title">👤 個人総合リーダーボード</h2>
     </div>
 
     <!-- ソート順切り替えボタン -->
@@ -254,8 +263,45 @@
         startApp();
       } else {
         renderGroupSetupForms();
+        loadPastRoomsList();
       }
     };
+
+    // 過去のコンペ一覧をFirebaseからロードして表示
+    function loadPastRoomsList() {
+      const pastListEl = document.getElementById('past-rooms-list');
+      db.ref('rooms').once('value', (snapshot) => {
+        const rooms = snapshot.val();
+        if (!rooms) {
+          pastListEl.innerHTML = '<div style="font-size:0.8em; color:#94a3b8;">まだ過去のコンペ履歴はありません。</div>';
+          return;
+        }
+
+        pastListEl.innerHTML = '';
+        Object.entries(rooms).reverse().forEach(([rId, rData]) => {
+          const dateStr = rData.createdAt ? new Date(rData.createdAt).toLocaleDateString('ja-JP') : '';
+          const titleStr = rData.title || "無題のコンペ";
+          const pCount = Object.keys(rData.players || {}).length;
+
+          pastListEl.innerHTML += `
+            <div class="past-room-item" onclick="openPastRoom('${rId}')">
+              <div>
+                <div style="font-weight:bold; color:#1e3a8a;">🏆 ${titleStr}</div>
+                <div style="font-size:0.75em; color:#64748b;">${dateStr} (${rData.groupCount || 3}組 / ${pCount}名)</div>
+              </div>
+              <div style="font-size:0.8em; font-weight:bold; color:#2563eb;">結果を見る ➔</div>
+            </div>
+          `;
+        });
+      });
+    }
+
+    function openPastRoom(rId) {
+      roomId = rId;
+      myGroup = 0;
+      startApp();
+      renderShareButtons(globalData.groupCount || 3);
+    }
 
     function renderGroupSetupForms() {
       const count = parseInt(document.getElementById('groupCountSelect').value);
@@ -326,6 +372,7 @@
         title: title,
         groupCount: count,
         startCourse: startCourse,
+        createdAt: Date.now(),
         players: players,
         pars: pars,
         scores: {},
@@ -387,6 +434,10 @@
         const val = snapshot.val();
         if (val) {
           globalData = val;
+          const roomTitleHeader = document.getElementById('board-room-title');
+          if (roomTitleHeader && val.title) {
+            roomTitleHeader.innerText = `🏆 ${val.title} 個人総合リーダーボード`;
+          }
         }
 
         if (!selectedHole || selectedHole === 1) {
@@ -1022,7 +1073,7 @@
         playerBody.innerHTML += `
           <tr class="${idx === 0 ? 'rank-1' : ''}">
             <td>${idx + 1}位</td>
-            <td>${p.group}组</td>
+            <td>${p.group}組</td>
             <td><b>${p.name}</b></td>
             <td>${p.net} (${p.gross})</td>
             <td>${p.scorePoints >= 0 ? '+' : ''}${p.scorePoints}</td>
