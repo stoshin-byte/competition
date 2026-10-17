@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>複数組コンペ対応 リアルタイムゴルフ計算アプリ</title>
+  <title>ゴルフコンペ リアルタイムスコア共有</title>
   
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -19,13 +19,13 @@
     .btn-tab { flex: 1; min-width: 50px; padding: 8px; border: 1px solid #cbd5e1; background: #e2e8f0; font-weight: bold; border-radius: 6px; cursor: pointer; text-align: center; }
     .btn-tab.active { background: #2563eb; color: white; border-color: #2563eb; }
 
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
-    input, select, textarea, button { width: 100%; padding: 8px; margin-top: 4px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
-    textarea { font-family: monospace; font-size: 0.85em; }
+    input, select, button { width: 100%; padding: 8px; margin-top: 4px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
 
     .btn-submit { background: #27ae60; color: white; font-weight: bold; padding: 12px; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; }
     .btn-submit:hover { background: #219150; }
-    .btn-secondary { background: #64748b; color: white; font-weight: bold; padding: 8px; border: none; border-radius: 6px; cursor: pointer; margin-top: 6px; }
+    .btn-share-line { background: #06c755; color: white; font-weight: bold; padding: 10px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; text-align: center; margin-top: 6px; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.85em; }
     th, td { border: 1px solid #ddd; padding: 6px 4px; text-align: center; }
@@ -33,39 +33,44 @@
 
     .rank-1 { background: #fef08a; font-weight: bold; }
     .badge-team { padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75em; background: #dbeafe; color: #1e3a8a; }
-    .desc-text { font-size: 0.8em; color: #64748b; margin-top: -4px; margin-bottom: 8px; }
+    .group-setup-box { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+    .group-setup-title { font-weight: bold; color: #1e3a8a; font-size: 0.9em; margin-bottom: 6px; }
+    .player-inputs-row { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; margin-bottom: 6px; }
   </style>
 </head>
 <body>
 
-  <h1>⛳️ 複数組コンペ計算（リアルタイム同期）</h1>
+  <h1>⛳️ コンペ スコアリアルタイム共有</h1>
 
-  <!-- ルーム ＆ 一括登録設定 -->
-  <div class="card" id="room-sec">
-    <h2>1. コンペルーム設定</h2>
-    <label>ルームID（全プレイヤー共通）</label>
-    <input type="text" id="roomId" value="golf-cup-2026" placeholder="例: tournament1017">
+  <!-- 幹事用 設定画面（直接URLアクセス時に表示） -->
+  <div class="card" id="setup-sec">
+    <h2>👑 幹事用 コンペ作成 & メンバー登録</h2>
+    
+    <label>コンペ名 / ルーム名</label>
+    <input type="text" id="roomTitle" value="第1回ゴルフコンペ" placeholder="例: サークルコンペ">
 
-    <label style="margin-top:12px;">担当する組の選択</label>
-    <select id="myGroupSelect">
-      <option value="1">1組目 代表者</option>
-      <option value="2">2組目 代表者</option>
-      <option value="3">3組目 代表者</option>
-      <option value="4">4組目 代表者</option>
-      <option value="5">5組目 代表者</option>
+    <label style="margin-top:10px;">組数（チーム数）</label>
+    <select id="groupCountSelect" onchange="renderGroupSetupForms()">
+      <option value="2">2組 (6〜8名)</option>
+      <option value="3" selected>3組 (9〜12名)</option>
+      <option value="4">4組 (12〜16名)</option>
+      <option value="5">5組 (15〜20名)</option>
     </select>
 
-    <div style="margin-top:15px; border-top:1px solid #e2e8f0; padding-top:12px;">
-      <label>📋 参加者の一括登録 (幹事用)</label>
-      <div class="desc-text">1行につき「名前, ハンディ, 組番号」の順で入力してください</div>
-      <textarea id="bulkInput" rows="6" placeholder="山田太郎, 0, 1&#10;佐藤花子, 2, 1&#10;鈴木一郎, 4, 1&#10;田中次郎, 0, 2&#10;高橋三郎, 3, 2&#10;伊藤四郎, 5, 2"></textarea>
-      <button class="btn-secondary" onclick="registerBulkPlayers()">一括登録データを読み込み</button>
-    </div>
+    <div id="group-inputs-container" style="margin-top:15px;"></div>
 
-    <button class="btn-submit" onclick="connectRoom()" style="margin-top:15px;">ルームに接続・同期開始</button>
+    <button class="btn-submit" onclick="createTournament()">コンペを作成してLINE共有リンクを発行</button>
   </div>
 
-  <!-- スコア入力エリア -->
+  <!-- LINE共有リンク表示エリア -->
+  <div class="card" id="share-sec" style="display:none;">
+    <h2>📲 各組代表者への共有用リンク</h2>
+    <p style="font-size:0.8em; color:#64748b;">各組の代表者に、下のボタンからLINEでリンクを送信してください。</p>
+    <div id="share-buttons-list"></div>
+    <button class="btn-submit" onclick="startAppAsHost()" style="background:#3b82f6;">幹事としてリーダーボードを開く</button>
+  </div>
+
+  <!-- スコア入力エリア（代表者用） -->
   <div class="card" id="input-sec" style="display:none;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <h2 id="input-group-title">スコア入力</h2>
@@ -110,7 +115,7 @@
   </div>
 
   <script>
-    // 設定いただいた Firebase URL
+    // Firebase 設定
     const firebaseConfig = {
       databaseURL: "https://okadagolf-app-default-rtdb.firebaseio.com/"
     };
@@ -118,11 +123,146 @@
     const db = firebase.database();
 
     let roomId = "";
-    let myGroup = 1;
+    let myGroup = 0;
     let selectedHole = 1;
     let globalData = { players: {}, scores: {} };
 
-    // 初期18ホールタブの作成
+    // 画面ロード時のパラメータチェック
+    window.onload = function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      const groupParam = urlParams.get('group');
+
+      if (roomParam && groupParam) {
+        // LINE等のリンクから開いた場合（直接その組の入力画面へ）
+        roomId = roomParam;
+        myGroup = parseInt(groupParam);
+        startApp();
+      } else {
+        // 幹事用登録フォームの初期表示
+        renderGroupSetupForms();
+      }
+    };
+
+    // 組数に応じたメンバー入力枠の動的生成
+    function renderGroupSetupForms() {
+      const count = parseInt(document.getElementById('groupCountSelect').value);
+      const container = document.getElementById('group-inputs-container');
+      container.innerHTML = '';
+
+      for (let g = 1; g <= count; g++) {
+        let html = `
+          <div class="group-setup-box">
+            <div class="group-setup-title">🚩 ${g}組目 メンバー設定</div>
+            <div class="player-inputs-row">
+              <input type="text" id="g${g}-p1-name" value="${g}組 プレイヤー1" placeholder="名前">
+              <input type="number" id="g${g}-p1-hdcp" value="0" placeholder="HDCP">
+            </div>
+            <div class="player-inputs-row">
+              <input type="text" id="g${g}-p2-name" value="${g}組 プレイヤー2" placeholder="名前">
+              <input type="number" id="g${g}-p2-hdcp" value="0" placeholder="HDCP">
+            </div>
+            <div class="player-inputs-row">
+              <input type="text" id="g${g}-p3-name" value="${g}組 プレイヤー3" placeholder="名前">
+              <input type="number" id="g${g}-p3-hdcp" value="0" placeholder="HDCP">
+            </div>
+          </div>
+        `;
+        container.innerHTML += html;
+      }
+    }
+
+    // 幹事によるコンペ作成・データ送信
+    function createTournament() {
+      const title = document.getElementById('roomTitle').value.trim() || "ゴルフコンペ";
+      const count = parseInt(document.getElementById('groupCountSelect').value);
+      
+      // ランダムなIDを生成
+      roomId = "room-" + Math.random().toString(36).substring(2, 8);
+      
+      let players = {};
+      let pCount = 0;
+
+      for (let g = 1; g <= count; g++) {
+        for (let p = 1; p <= 3; p++) {
+          const nameInput = document.getElementById(`g${g}-p${p}-name`);
+          const hdcpInput = document.getElementById(`g${g}-p${p}-hdcp`);
+
+          if (nameInput && nameInput.value.trim() !== "") {
+            pCount++;
+            players[`p${pCount}`] = {
+              name: nameInput.value.trim(),
+              hdcp: parseInt(hdcpInput.value) || 0,
+              group: g
+            };
+          }
+        }
+      }
+
+      // Firebaseへ書き込み
+      db.ref(`rooms/${roomId}`).set({
+        title: title,
+        groupCount: count,
+        players: players,
+        scores: {}
+      }).then(() => {
+        renderShareButtons(count);
+      });
+    }
+
+    // 各組用LINE共有ボタンの作成
+    function renderShareButtons(count) {
+      document.getElementById('setup-sec').style.display = 'none';
+      document.getElementById('share-sec').style.display = 'block';
+
+      const list = document.getElementById('share-buttons-list');
+      list.innerHTML = '';
+
+      const baseUrl = window.location.href.split('?')[0];
+
+      for (let g = 1; g <= count; g++) {
+        const shareUrl = `${baseUrl}?room=${roomId}&group=${g}`;
+        const lineText = encodeURIComponent(`【ゴルフコンペ】${g}組目のスコア入力用リンクです：\n${shareUrl}`);
+        const lineUrl = `https://line.me/R/msg/text/?${lineText}`;
+
+        list.innerHTML += `
+          <div style="background:#f1f5f9; border:1px solid #cbd5e1; padding:10px; border-radius:8px; margin-bottom:10px;">
+            <div style="font-weight:bold; font-size:0.9em;">🚩 ${g}組目用アクセスリンク</div>
+            <a href="${lineUrl}" target="_blank" class="btn-share-line">📱 ${g}組目 代表者へLINEで送信</a>
+          </div>
+        `;
+      }
+    }
+
+    function startAppAsHost() {
+      myGroup = 0; // 幹事（閲覧のみモード）
+      startApp();
+    }
+
+    function startApp() {
+      document.getElementById('setup-sec').style.display = 'none';
+      document.getElementById('share-sec').style.display = 'none';
+
+      if (myGroup > 0) {
+        document.getElementById('input-sec').style.display = 'block';
+        document.getElementById('input-group-title').innerText = `${myGroup}組目のスコア入力`;
+      }
+
+      document.getElementById('board-sec').style.display = 'block';
+
+      initHoleTabs();
+
+      // Firebaseデータの監視
+      db.ref(`rooms/${roomId}`).on('value', (snapshot) => {
+        const val = snapshot.val();
+        if (val) {
+          globalData = val;
+        }
+        if (myGroup > 0) renderInputForm();
+        calculateLeaderboard();
+      });
+    }
+
     function initHoleTabs() {
       const tabContainer = document.getElementById('hole-tabs');
       tabContainer.innerHTML = '';
@@ -133,82 +273,21 @@
       }
     }
 
-    // テキストエリアからのプレイヤー一括登録処理
-    function registerBulkPlayers() {
-      const text = document.getElementById('bulkInput').value.trim();
-      if (!text) return alert("登録するテキストを入力してください");
-
-      const lines = text.split('\n');
-      let newPlayers = {};
-      let count = 0;
-
-      lines.forEach((line) => {
-        const parts = line.split(',').map(s => s.trim());
-        if (parts.length >= 1 && parts[0] !== "") {
-          count++;
-          const pId = `p${count}`;
-          newPlayers[pId] = {
-            name: parts[0],
-            hdcp: parts[1] ? parseInt(parts[1]) || 0 : 0,
-            group: parts[2] ? parseInt(parts[2]) || 1 : 1
-          };
-        }
-      });
-
-      if (count === 0) return alert("有効なデータが見つかりませんでした");
-
-      roomId = document.getElementById('roomId').value.trim();
-      if (!roomId) return alert("ルームIDを入力してください");
-
-      db.ref(`rooms/${roomId}/players`).set(newPlayers).then(() => {
-        alert(`${count}名のプレイヤーを一括登録しました！`);
-      });
-    }
-
-    function connectRoom() {
-      roomId = document.getElementById('roomId').value.trim();
-      myGroup = parseInt(document.getElementById('myGroupSelect').value);
-
-      if (!roomId) return alert("ルームIDを入力してください");
-
-      document.getElementById('room-sec').style.display = 'none';
-      document.getElementById('input-sec').style.display = 'block';
-      document.getElementById('board-sec').style.display = 'block';
-      document.getElementById('input-group-title').innerText = `${myGroup}組目のスコア入力`;
-
-      initHoleTabs();
-
-      // Firebaseデータ同期処理
-      db.ref(`rooms/${roomId}`).on('value', (snapshot) => {
-        const val = snapshot.val();
-        if (val) {
-          globalData = val;
-        }
-        renderInputForm();
-        calculateLeaderboard();
-      });
-    }
-
     function selectHole(h) {
       selectedHole = h;
       for (let i = 1; i <= 18; i++) {
         const btn = document.getElementById(`tab-h${i}`);
         if (btn) btn.className = `btn-tab ${i === h ? 'active' : ''}`;
       }
-      renderInputForm();
+      if (myGroup > 0) renderInputForm();
     }
 
     function renderInputForm() {
       const list = document.getElementById('player-input-list');
-      list.innerHTML = `<p style="font-size:0.85em; font-weight:bold; margin-bottom:8px;">【${selectedHole}番ホール】打数＆イベント入力</p>`;
+      list.innerHTML = `<p style="font-size:0.85em; font-weight:bold; margin-bottom:8px;">【${selectedHole}番ホール】打数＆オリンピック入力</p>`;
 
       const groupPlayers = Object.entries(globalData.players || {})
         .filter(([id, p]) => p.group === myGroup);
-
-      if (groupPlayers.length === 0) {
-        list.innerHTML += `<div style="font-size:0.8em; color:#ef4444;">※${myGroup}組目に登録されているプレイヤーがいません。「一括登録」を行ってください。</div>`;
-        return;
-      }
 
       const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
 
@@ -258,7 +337,7 @@
       alert(`${selectedHole}番ホールのスコアを送信しました！`);
     }
 
-    // 集計処理
+    // リーダーボード全自動計算
     function calculateLeaderboard() {
       const players = globalData.players || {};
       const scores = globalData.scores || {};
