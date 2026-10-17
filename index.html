@@ -52,7 +52,7 @@
     .player-card-setup { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; }
     .player-inputs-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; }
 
-    .btn-order { background: #3b82f6; color: white; border: none; font-size: 0.8em; font-weight: bold; padding: 6px 10px; border-radius: 4px; cursor: pointer; width: auto; display: inline-block; }
+    .btn-order { background: #2563eb; color: white; border: none; font-size: 0.8em; font-weight: bold; padding: 6px 12px; border-radius: 4px; cursor: pointer; width: auto; display: inline-block; }
     .btn-order:active { background: #1d4ed8; }
 
     .history-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-top: 12px; }
@@ -202,12 +202,10 @@
 
     <div class="tab-group" id="hole-tabs"></div>
 
-    <!-- 未送信の前のホールがある場合の警告枠 -->
     <div id="unreachable-msg" class="unreachable-box" style="display:none;">
       ⚠️ 前のホールのスコアが未送信です。前のホールを先に送信してください。
     </div>
 
-    <!-- 送信済みホールのロック解除ボタン枠 -->
     <div id="unlock-btn-container" style="display:none;">
       <button class="btn-edit-unlock" onclick="unlockHoleForm()">✏️ このホールのスコアを修正する</button>
     </div>
@@ -469,7 +467,6 @@
       });
     }
 
-    // 正確な組パラメータ（1, 2, 3...）がURLに付与されるLINEシェアリンク生成関数
     function renderShareButtons(count) {
       document.getElementById('setup-sec').style.display = 'none';
       document.getElementById('share-sec').style.display = 'block';
@@ -626,22 +623,23 @@
               <span style="font-weight:bold;">${item.name}</span>
               <span class="badge-team ${teamClass}" style="margin-left:6px;">${teamLabel}</span>
             </div>
-            <div>
-              ${idx > 0 ? `<button class="btn-order" onclick="moveModalOrder(\${idx}, -1)">▲上へ</button>` : ''}
-              ${idx < currentModalOrderList.length - 1 ? `<button class="btn-order" onclick="moveModalOrder(\${idx}, 1)">▼下へ</button>` : ''}
+            <div style="display:flex; gap:4px;">
+              ${idx > 0 ? `<button type="button" class="btn-order" onclick="moveModalOrder(\${idx}, -1)">▲上へ</button>` : ''}
+              ${idx < currentModalOrderList.length - 1 ? `<button type="button" class="btn-order" onclick="moveModalOrder(\${idx}, 1)">▼下へ</button>` : ''}
             </div>
           </div>
         `;
       });
     }
 
+    // 正確な配列スワップ（入れ替え）とモーダル内即時再描画処理
     function moveModalOrder(idx, dir) {
       const targetIdx = idx + dir;
       if (targetIdx < 0 || targetIdx >= currentModalOrderList.length) return;
 
-      const temp = currentModalOrderList[idx];
+      const itemToMove = currentModalOrderList[idx];
       currentModalOrderList[idx] = currentModalOrderList[targetIdx];
-      currentModalOrderList[targetIdx] = temp;
+      currentModalOrderList[targetIdx] = itemToMove;
 
       renderOrderModalList();
     }
