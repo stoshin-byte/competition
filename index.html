@@ -233,7 +233,7 @@
       <tbody id="player-rank-body"></tbody>
     </table>
     <div style="font-size:0.7em; color:#64748b; margin-top:6px;">
-      ※スコアP＝平均ネット打数−自分のネット打数<br>
+      ※スコアP＝(平均ネット打数−自分のネット打数)×10倍（1打差＝10P）<br>
       ※総合P＝スコアP ＋ ゲームP ＋ チームP（完全ゼロサム）
     </div>
 
@@ -276,7 +276,7 @@
     let globalData = { players: {}, scores: {}, pars: {}, chips: {}, startCourse: "OUT", groupCount: 3, teamCount: 3 };
 
     let tempInputState = {}; 
-    let holeCalculatedCache = {}; // ラスベガスP＆個人別ログキャッシュ
+    let holeCalculatedCache = {};
 
     const ALL_TEAM_NAMES = ["チームA", "チームB", "チームC", "チームD"];
     const TEAM_CLASSES = { 
@@ -645,7 +645,6 @@
       }
     }
 
-    // ラスベガスP移動＆他者起因のマイナスPを含む個人ホール別成績の可視化
     function renderPersonalHistory() {
       const targetPId = document.getElementById('personal-player-select').value;
       const listContainer = document.getElementById('personal-detail-list');
@@ -1270,15 +1269,17 @@
         });
       });
 
+      // スコアPを10倍（整数）にして集計
       if (totalPlayersCount > 0) {
         let netSum = 0;
         Object.values(playerTotals).forEach(p => { netSum += p.net; });
         const avgNet = netSum / totalPlayersCount;
 
         Object.keys(playerTotals).forEach(pId => {
-          const sP = Math.round((avgNet - playerTotals[pId].net) * 10) / 10;
+          // 10倍にして小数点以下をなくす
+          const sP = Math.round((avgNet - playerTotals[pId].net) * 10);
           playerTotals[pId].scorePoints = sP;
-          playerTotals[pId].totalPoints = Math.round((sP + playerTotals[pId].olyPoints + playerTotals[pId].teamPoints) * 10) / 10;
+          playerTotals[pId].totalPoints = sP + playerTotals[pId].olyPoints + playerTotals[pId].teamPoints;
         });
       }
 
