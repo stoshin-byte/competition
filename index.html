@@ -29,7 +29,6 @@
 
     .chip-box { background: #fefce8; border: 1px solid #fef08a; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
 
-    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
     input, select, button { width: 100%; padding: 8px; margin-top: 4px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
 
     .btn-submit { background: #27ae60; color: white; font-weight: bold; padding: 12px; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; font-size: 1em; }
@@ -43,7 +42,6 @@
 
     .rank-1 { background: #fef08a; font-weight: bold; }
     
-    /* チームカラーバッジスタイル */
     .badge-team { padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75em; display: inline-block; }
     .badge-team-A { background: #dbeafe; color: #1e3a8a; border: 1px solid #bfdbfe; }
     .badge-team-B { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
@@ -56,8 +54,6 @@
     
     .player-card-setup { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; }
     .player-inputs-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; }
-    .penalty-checkboxes { display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.75em; margin-top: 6px; background: #fff1f2; padding: 4px 6px; border-radius: 4px; border: 1px solid #fecdd3; }
-    .penalty-checkboxes label { cursor: pointer; display: flex; align-items: center; gap: 2px; }
 
     .btn-order { background: #f1f5f9; border: 1px solid #cbd5e1; font-size: 0.75em; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: auto; display: inline-block; }
 
@@ -65,6 +61,21 @@
     .history-hole-title { font-weight: bold; color: #1e3a8a; font-size: 0.85em; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px; margin-bottom: 6px; }
     .plus-pts { color: #2563eb; font-weight: bold; }
     .minus-pts { color: #dc2626; font-weight: bold; }
+
+    .player-card-input { background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+    .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    
+    .score-input-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .score-input-row label { font-size: 0.8em; font-weight: bold; min-width: 40px; }
+    .score-input-row input { width: 80px; font-weight: bold; text-align: center; font-size: 1.1em; margin: 0; padding: 6px; }
+
+    .btn-grid-oly { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 8px; }
+    .btn-oly { padding: 8px 2px; font-size: 0.72em; font-weight: bold; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 6px; cursor: pointer; text-align: center; }
+    .btn-oly.active { background: #2563eb; color: white; border-color: #1d4ed8; box-shadow: inset 0 2px 4px rgba(0,0,0,0.15); }
+
+    .btn-grid-pen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .btn-pen { padding: 8px 2px; font-size: 0.72em; font-weight: bold; border: 1px solid #fecdd3; background: #fff1f2; color: #9f1239; border-radius: 6px; cursor: pointer; text-align: center; }
+    .btn-pen.active { background: #e11d48; color: white; border-color: #be123c; box-shadow: inset 0 2px 4px rgba(0,0,0,0.15); }
   </style>
 </head>
 <body>
@@ -212,6 +223,8 @@
     let playerSortMode = 'total';
     let historyViewMode = 'vegas';
     let globalData = { players: {}, scores: {}, pars: {}, chips: {}, startCourse: "OUT", groupCount: 3 };
+
+    let tempInputState = {}; 
 
     const ALL_TEAM_NAMES = ["チームA", "チームB", "チームC", "チームD", "チームE"];
     const TEAM_CLASSES = { 
@@ -419,6 +432,7 @@
 
     function selectHole(h) {
       selectedHole = h;
+      tempInputState = {}; 
       const seq = getHoleSequence();
 
       seq.forEach(i => {
@@ -480,9 +494,8 @@
       }
     }
 
-    function changeInitialPos(pId, direction) {
-      if (selectedHole !== getHoleSequence()[0]) return;
-
+    // 全ホールで打順の上下入れ替えを可能にする
+    function changePlayerOrder(pId, direction) {
       const groupPlayers = Object.entries(globalData.players || {})
         .filter(([id, p]) => p.group === myGroup)
         .sort((a, b) => (a[1].pos || 1) - (b[1].pos || 1));
@@ -496,8 +509,38 @@
       const curPos = groupPlayers[idx][1].pos || (idx + 1);
       const targetPos = groupPlayers[targetIdx][1].pos || (targetIdx + 1);
 
+      // 即座にFirebaseを更新（リスナーによって画面が自動再描画されます）
       db.ref(`rooms/${roomId}/players/${pId}/pos`).set(targetPos);
       db.ref(`rooms/${roomId}/players/${groupPlayers[targetIdx][0]}/pos`).set(curPos);
+    }
+
+    function toggleOly(pId, val) {
+      if (!tempInputState[pId]) tempInputState[pId] = {};
+      
+      if (tempInputState[pId].olympic === val) {
+        tempInputState[pId].olympic = ""; 
+      } else {
+        tempInputState[pId].olympic = val;
+      }
+
+      ['gold', 'silver', 'bronze', 'iron', 'dia'].forEach(v => {
+        const btn = document.getElementById(`btn-oly-${pId}-${v}`);
+        if (btn) {
+          if (tempInputState[pId].olympic === v) btn.classList.add('active');
+          else btn.classList.remove('active');
+        }
+      });
+    }
+
+    function togglePen(pId, penType) {
+      if (!tempInputState[pId]) tempInputState[pId] = {};
+      tempInputState[pId][penType] = !tempInputState[pId][penType];
+
+      const btn = document.getElementById(`btn-pen-${pId}-${penType}`);
+      if (btn) {
+        if (tempInputState[pId][penType]) btn.classList.add('active');
+        else btn.classList.remove('active');
+      }
     }
 
     function renderInputForm() {
@@ -506,14 +549,9 @@
       const list = document.getElementById('player-input-list');
       const totalGroups = globalData.groupCount || 3;
       let isChipHole = (currentHolePar === 3 || currentHolePar === 5);
-      const isStartHole = (selectedHole === getHoleSequence()[0]);
 
       let headerInfo = `【${selectedHole}番ホール (PAR${currentHolePar})】スコア＆イベント入力`;
-      if (isStartHole) {
-        headerInfo += `<div style="font-size:0.75em; color:#2563eb; font-weight:normal; margin-top:2px;">※1ホール目のみ初期打順（1〜4打手）をボタンで変更可能です</div>`;
-      } else {
-        headerInfo += `<div style="font-size:0.75em; color:#059669; font-weight:normal; margin-top:2px;">※2ホール目以降の打順（オナー）は前ホールの成績から自動判別されます</div>`;
-      }
+      headerInfo += `<div style="font-size:0.75em; color:#2563eb; font-weight:normal; margin-top:2px;">※ボタン操作で打順（1〜4打手）をいつでも入れ替え可能です</div>`;
       if (isChipHole && myGroup !== totalGroups) {
         headerInfo += `<div style="font-size:0.75em; color:#d97706; font-weight:normal; margin-top:2px;">※ニアピン・ドラコンの入力は最終組（${totalGroups}組目）の代表者が行います</div>`;
       }
@@ -532,53 +570,57 @@
       groupPlayers.forEach(([pId, p], idx) => {
         const curData = holeScores[pId] || {};
         const curScore = curData.score || currentHolePar;
-        const curOly = curData.olympic || "";
-        const curWater = curData.water || false;
-        const curOb = curData.ob || false;
-        const curPutt = curData.putt3 || false;
-        const curBunker = curData.bunker || false;
+        
+        if (!tempInputState[pId]) {
+          tempInputState[pId] = {
+            olympic: curData.olympic || "",
+            water: curData.water || false,
+            ob: curData.ob || false,
+            putt3: curData.putt3 || false,
+            bunker: curData.bunker || false
+          };
+        }
 
         const autoOrder = (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][pId]) || p.pos || 1;
         const tIndex = ( (myGroup - 1) + (autoOrder - 1) ) % activeTeams.length;
         const teamLabel = activeTeams[tIndex];
         const teamClass = TEAM_CLASSES[teamLabel] || "badge-team-A";
 
+        const st = tempInputState[pId];
+
         list.innerHTML += `
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:8px; border-radius:6px; margin-bottom:8px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <div class="player-card-input">
+            <div class="player-header">
               <div style="font-weight:bold; font-size:0.9em;">
                 ${p.name} (HDCP:${p.hdcp}) <span class="badge-team ${teamClass}">${teamLabel} (${autoOrder}打手)</span>
               </div>
               <div>
-                ${isStartHole && idx > 0 ? `<button class="btn-order" onclick="changeInitialPos('\${pId}', -1)">▲上へ</button>` : ''}
-                ${isStartHole && idx < groupPlayers.length - 1 ? `<button class="btn-order" onclick="changeInitialPos('\${pId}', 1)">▼下へ</button>` : ''}
+                ${idx > 0 ? `<button class="btn-order" onclick="changePlayerOrder('\${pId}', -1)">▲上へ</button>` : ''}
+                ${idx < groupPlayers.length - 1 ? `<button class="btn-order" onclick="changePlayerOrder('\${pId}', 1)">▼下へ</button>` : ''}
               </div>
             </div>
 
-            <div class="grid-3">
-              <div>
-                <span style="font-size:0.7em;">打数</span>
-                <input type="number" id="input-score-${pId}" value="${curScore}" min="1">
-              </div>
-              <div style="grid-column: span 2;">
-                <span style="font-size:0.7em;">オリンピック</span>
-                <select id="input-oly-${pId}">
-                  <option value="" ${curOly===''?'selected':''}>なし</option>
-                  <option value="gold" ${curOly==='gold'?'selected':''}>🥇 金(+4)</option>
-                  <option value="silver" ${curOly==='silver'?'selected':''}>🥈 銀(+3)</option>
-                  <option value="bronze" ${curOly==='bronze'?'selected':''}>🥉 銅(+2)</option>
-                  <option value="iron" ${curOly==='iron'?'selected':''}>鉄(+1)</option>
-                  <option value="dia" ${curOly==='dia'?'selected':''}>💎 ダイヤ(+5)</option>
-                </select>
-              </div>
+            <div class="score-input-row">
+              <label>打数:</label>
+              <input type="number" id="input-score-${pId}" value="${curScore}" min="1">
+              <span style="font-size:0.75em; color:#64748b;">打 (PAR${currentHolePar})</span>
             </div>
 
-            <div class="penalty-checkboxes">
-              <span style="font-weight:bold; color:#be123c;">罰符(-1P):</span>
-              <label><input type="checkbox" id="input-water-${pId}" ${curWater ? 'checked' : ''}>🌊池</label>
-              <label><input type="checkbox" id="input-ob-${pId}" ${curOb ? 'checked' : ''}>💥OB</label>
-              <label><input type="checkbox" id="input-putt3-${pId}" ${curPutt ? 'checked' : ''}>⛳3パット</label>
-              <label><input type="checkbox" id="input-bunker-${pId}" ${curBunker ? 'checked' : ''}>⏳バンカー</label>
+            <div style="font-size:0.7em; font-weight:bold; color:#475569; margin-bottom:2px;">オリンピック:</div>
+            <div class="btn-grid-oly">
+              <button type="button" class="btn-oly ${st.olympic==='gold'?'active':''}" id="btn-oly-${pId}-gold" onclick="toggleOly('${pId}', 'gold')">🥇金(+4)</button>
+              <button type="button" class="btn-oly ${st.olympic==='silver'?'active':''}" id="btn-oly-${pId}-silver" onclick="toggleOly('${pId}', 'silver')">🥈銀(+3)</button>
+              <button type="button" class="btn-oly ${st.olympic==='bronze'?'active':''}" id="btn-oly-${pId}-bronze" onclick="toggleOly('${pId}', 'bronze')">🥉銅(+2)</button>
+              <button type="button" class="btn-oly ${st.olympic==='iron'?'active':''}" id="btn-oly-${pId}-iron" onclick="toggleOly('${pId}', 'iron')">鉄(+1)</button>
+              <button type="button" class="btn-oly ${st.olympic==='dia'?'active':''}" id="btn-oly-${pId}-dia" onclick="toggleOly('${pId}', 'dia')">💎ダイヤ(+5)</button>
+            </div>
+
+            <div style="font-size:0.7em; font-weight:bold; color:#be123c; margin-bottom:2px;">罰符 (-1P):</div>
+            <div class="btn-grid-pen">
+              <button type="button" class="btn-pen ${st.water?'active':''}" id="btn-pen-${pId}-water" onclick="togglePen('${pId}', 'water')">🌊池ポチャ</button>
+              <button type="button" class="btn-pen ${st.ob?'active':''}" id="btn-pen-${pId}-ob" onclick="togglePen('${pId}', 'ob')">💥OB</button>
+              <button type="button" class="btn-pen ${st.putt3?'active':''}" id="btn-pen-${pId}-putt3" onclick="togglePen('${pId}', 'putt3')">⛳️3パット</button>
+              <button type="button" class="btn-pen ${st.bunker?'active':''}" id="btn-pen-${pId}-bunker" onclick="togglePen('${pId}', 'bunker')">⏳バンカー</button>
             </div>
           </div>
         `;
@@ -600,19 +642,15 @@
 
       groupPlayers.forEach(([pId]) => {
         const scoreVal = parseInt(document.getElementById(`input-score-${pId}`).value) || currentHolePar;
-        const olyVal = document.getElementById(`input-oly-${pId}`).value;
-        const waterVal = document.getElementById(`input-water-${pId}`).checked;
-        const obVal = document.getElementById(`input-ob-${pId}`).checked;
-        const puttVal = document.getElementById(`input-putt3-${pId}`).checked;
-        const bunkerVal = document.getElementById(`input-bunker-${pId}`).checked;
+        const st = tempInputState[pId] || {};
 
         db.ref(`rooms/${roomId}/scores/${selectedHole}/${pId}`).set({
           score: scoreVal,
-          olympic: olyVal,
-          water: waterVal,
-          ob: obVal,
-          putt3: puttVal,
-          bunker: bunkerVal
+          olympic: st.olympic || "",
+          water: !!st.water,
+          ob: !!st.ob,
+          putt3: !!st.putt3,
+          bunker: !!st.bunker
         });
       });
 
@@ -772,7 +810,6 @@
 
             crossBest2Scores[tKey].push(netScore);
 
-            // バーディ判定は素の打数（グロス）＜ PAR
             if (rawScore < par) crossHasBirdie[tKey] = true;
 
             const oly = hScores[pId].olympic;
@@ -863,7 +900,6 @@
           }
         }
 
-        // 設定組数分のチームのみで総当たり計算
         const teams = Object.keys(crossTeamTotals);
         let teamVegasCode = {};
         let holeTeamDiffs = {};
