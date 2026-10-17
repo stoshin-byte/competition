@@ -65,7 +65,6 @@
     .player-card-input { background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
     .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     
-    /* 打数 ➕ ➖ ステッパーボタンUI */
     .score-stepper-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     .score-stepper-row label { font-size: 0.8em; font-weight: bold; min-width: 40px; }
     .stepper-box { display: flex; align-items: center; background: white; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; }
@@ -498,7 +497,6 @@
       }
     }
 
-    // 打順の上下入れ替え機能（scores/{selectedHole}/{pId}/orderに直書き）
     function changePlayerOrder(pId, direction) {
       const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
       const seq = getHoleSequence();
@@ -528,7 +526,6 @@
       db.ref(`rooms/${roomId}/scores/${selectedHole}/${targetId}/order`).set(curOrder);
     }
 
-    // 打数 ➕ ➖ ステッパー処理
     function changeScoreStep(pId, delta) {
       if (!tempInputState[pId]) tempInputState[pId] = {};
       const el = document.getElementById(`stepper-val-${pId}`);
@@ -1025,7 +1022,7 @@
         playerBody.innerHTML += `
           <tr class="${idx === 0 ? 'rank-1' : ''}">
             <td>${idx + 1}位</td>
-            <td>${p.group}組</td>
+            <td>${p.group}组</td>
             <td><b>${p.name}</b></td>
             <td>${p.net} (${p.gross})</td>
             <td>${p.scorePoints >= 0 ? '+' : ''}${p.scorePoints}</td>
