@@ -375,7 +375,12 @@
       roomId = rId;
       myGroup = 0;
       startApp();
-      renderShareButtons(globalData.groupCount || 3);
+      db.ref(`rooms/${rId}`).once('value', (snapshot) => {
+        const val = snapshot.val();
+        if (val) {
+          renderShareButtons(val.groupCount || 3);
+        }
+      });
     }
 
     function renderGroupSetupForms() {
@@ -464,6 +469,7 @@
       });
     }
 
+    // 正確な組パラメータ（1, 2, 3...）がURLに付与されるLINEシェアリンク生成関数
     function renderShareButtons(count) {
       document.getElementById('setup-sec').style.display = 'none';
       document.getElementById('share-sec').style.display = 'block';
@@ -629,7 +635,6 @@
       });
     }
 
-    // 確実な打順入れ替えと画面即時更新
     function moveModalOrder(idx, dir) {
       const targetIdx = idx + dir;
       if (targetIdx < 0 || targetIdx >= currentModalOrderList.length) return;
@@ -664,7 +669,7 @@
       document.getElementById('btn-view-game').className = `btn-sort ${mode === 'game' ? 'active' : ''}`;
       
       document.getElementById('history-vegas-container').style.display = (mode === 'vegas') ? 'block' : 'none';
-      document.getElementById('history-game-container').style.display = (mode === 'game') ? 'display:none;';
+      document.getElementById('history-game-container').style.display = (mode === 'game') ? 'block' : 'none';
     }
 
     function updateChipUI() {
