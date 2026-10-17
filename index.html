@@ -47,7 +47,6 @@
     .badge-team-B { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
     .badge-team-C { background: #fef9c3; color: #854d0e; border: 1px solid #fef08a; }
     .badge-team-D { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
-    .badge-team-E { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
 
     .group-setup-box { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
     .group-setup-title { font-weight: bold; color: #1e3a8a; font-size: 0.9em; margin-bottom: 6px; }
@@ -95,9 +94,9 @@
     <label>コンペ名 / ルーム名</label>
     <input type="text" id="roomTitle" value="第1回ゴルフコンペ" placeholder="例: サークルコンペ">
 
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px;">
+    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-top:10px;">
       <div>
-        <label>組数（チーム数）</label>
+        <label>組数</label>
         <select id="groupCountSelect" onchange="renderGroupSetupForms()">
           <option value="2">2組 (6〜8名)</option>
           <option value="3" selected>3組 (9〜12名)</option>
@@ -106,10 +105,18 @@
         </select>
       </div>
       <div>
-        <label>スタートコース</label>
+        <label>対戦チーム数</label>
+        <select id="teamCountSelect">
+          <option value="2">2チーム (A, B)</option>
+          <option value="3">3チーム (A, B, C)</option>
+          <option value="4" selected>4チーム (A, B, C, D)</option>
+        </select>
+      </div>
+      <div>
+        <label>スタート</label>
         <select id="startCourseSelect">
-          <option value="OUT" selected>OUTスタート (1H〜)</option>
-          <option value="IN">INスタート (10H〜)</option>
+          <option value="OUT" selected>OUT (1H〜)</option>
+          <option value="IN">IN (10H〜)</option>
         </select>
       </div>
     </div>
@@ -118,7 +125,6 @@
 
     <button class="btn-submit" onclick="createTournament()">コンペを作成してLINE共有リンクを発行</button>
 
-    <!-- 過去コンペ履歴一覧エリア（パターンB） -->
     <div style="margin-top:25px; border-top:2px solid #cbd5e1; padding-top:12px;">
       <h2>📚 過去のコンペ履歴（過去ラウンドの振り返り）</h2>
       <div id="past-rooms-list" style="font-size:0.85em; color:#64748b;">(読込中...)</div>
@@ -147,10 +153,8 @@
       <span style="color:#27ae60; font-size:0.8em; font-weight:bold;">● リアルタイム同期中</span>
     </div>
 
-    <!-- ホール選択タブ (1〜18ホール) -->
     <div class="tab-group" id="hole-tabs"></div>
 
-    <!-- PAR設定 -->
     <div style="margin-bottom:10px;">
       <label style="font-size:0.8em; font-weight:bold;">ホールPAR設定</label>
       <div class="par-btn-group">
@@ -160,7 +164,6 @@
       </div>
     </div>
 
-    <!-- ニアピン・ドラコン枠（最終組代表者のみ表示） -->
     <div class="chip-box" id="chip-box" style="display:none;">
       <label id="chip-title-label" style="font-size:0.85em; font-weight:bold; color:#854d0e;">🚩 チップ対象ホール (5P)</label>
       <select id="chip-winner-select"></select>
@@ -178,7 +181,6 @@
       <h2 style="margin:0; border:none;" id="board-room-title">👤 個人総合リーダーボード</h2>
     </div>
 
-    <!-- ソート順切り替えボタン -->
     <div class="sort-btn-group" style="margin-top:8px;">
       <button class="btn-sort active" id="btn-sort-total" onclick="setPlayerSort('total')">👑 総合P順 (全合算)</button>
       <button class="btn-sort" id="btn-sort-net" onclick="setPlayerSort('net')">⛳️ ネット打数順</button>
@@ -205,7 +207,6 @@
       ※総合P＝スコアP ＋ ゲームP ＋ チームP（完全ゼロサム）
     </div>
 
-    <!-- 履歴切り替え表示エリア -->
     <div style="margin-top:25px; border-top:2px solid #cbd5e1; padding-top:12px;">
       <h2>📜 ホール別 詳細履歴</h2>
       <div class="sort-btn-group">
@@ -213,10 +214,7 @@
         <button class="btn-sort" id="btn-view-game" onclick="toggleHistoryView('game')">💎 ゲームP・役・罰符履歴</button>
       </div>
 
-      <!-- ラスベガス履歴 -->
       <div id="history-vegas-container"></div>
-
-      <!-- ゲームP履歴 -->
       <div id="history-game-container" style="display:none;"></div>
     </div>
   </div>
@@ -234,22 +232,36 @@
     let currentHolePar = 4;
     let playerSortMode = 'total';
     let historyViewMode = 'vegas';
-    let globalData = { players: {}, scores: {}, pars: {}, chips: {}, startCourse: "OUT", groupCount: 3 };
+    let globalData = { players: {}, scores: {}, pars: {}, chips: {}, startCourse: "OUT", groupCount: 3, teamCount: 4 };
 
     let tempInputState = {}; 
 
-    const ALL_TEAM_NAMES = ["チームA", "チームB", "チームC", "チームD", "チームE"];
+    const ALL_TEAM_NAMES = ["チームA", "チームB", "チームC", "チームD"];
     const TEAM_CLASSES = { 
       "チームA": "badge-team-A", 
       "チームB": "badge-team-B", 
       "チームC": "badge-team-C", 
-      "チームD": "badge-team-D",
-      "チームE": "badge-team-E"
+      "チームD": "badge-team-D"
     };
 
     function getActiveTeamNames() {
-      const num = globalData.groupCount || 3;
+      const num = globalData.teamCount || 4;
       return ALL_TEAM_NAMES.slice(0, num);
+    }
+
+    // 打順合計を全チーム均一化（合計「5」）にするチーム判定ロジック
+    function getBalancedTeamIndex(groupNum, orderNum, teamNum) {
+      const g = groupNum - 1; 
+      const o = orderNum - 1; 
+
+      if (g % 2 === 0) {
+        // 奇数組目（1組目, 3組目...）は正順
+        return o % teamNum;
+      } else {
+        // 偶数組目（2組目, 4組目...）は完全逆順（1打手➔4打手, 2打手➔3打手）
+        const invOrder = (teamNum - 1) - (o % teamNum);
+        return invOrder % teamNum;
+      }
     }
 
     window.onload = function() {
@@ -267,7 +279,6 @@
       }
     };
 
-    // 過去のコンペ一覧をFirebaseからロードして表示
     function loadPastRoomsList() {
       const pastListEl = document.getElementById('past-rooms-list');
       db.ref('rooms').once('value', (snapshot) => {
@@ -287,7 +298,7 @@
             <div class="past-room-item" onclick="openPastRoom('${rId}')">
               <div>
                 <div style="font-weight:bold; color:#1e3a8a;">🏆 ${titleStr}</div>
-                <div style="font-size:0.75em; color:#64748b;">${dateStr} (${rData.groupCount || 3}組 / ${pCount}名)</div>
+                <div style="font-size:0.75em; color:#64748b;">${dateStr} (${rData.groupCount || 3}組 / ${rData.teamCount || 4}チーム / ${pCount}名)</div>
               </div>
               <div style="font-size:0.8em; font-weight:bold; color:#2563eb;">結果を見る ➔</div>
             </div>
@@ -339,6 +350,7 @@
     function createTournament() {
       const title = document.getElementById('roomTitle').value.trim() || "ゴルフコンペ";
       const count = parseInt(document.getElementById('groupCountSelect').value);
+      const teamCount = parseInt(document.getElementById('teamCountSelect').value);
       const startCourse = document.getElementById('startCourseSelect').value;
       
       roomId = "room-" + Math.random().toString(36).substring(2, 8);
@@ -371,6 +383,7 @@
       db.ref(`rooms/${roomId}`).set({
         title: title,
         groupCount: count,
+        teamCount: teamCount,
         startCourse: startCourse,
         createdAt: Date.now(),
         players: players,
@@ -659,7 +672,7 @@
         }
 
         const autoOrder = (curData.order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][pId]) || p.pos || (idx + 1);
-        const tIndex = ( (myGroup - 1) + (autoOrder - 1) ) % activeTeams.length;
+        const tIndex = getBalancedTeamIndex(myGroup, autoOrder, activeTeams.length);
         const teamLabel = activeTeams[tIndex];
         const teamClass = TEAM_CLASSES[teamLabel] || "badge-team-A";
 
@@ -677,7 +690,6 @@
               </div>
             </div>
 
-            <!-- 打数 ➕ ➖ ステッパー -->
             <div class="score-stepper-row">
               <label>打数:</label>
               <div class="stepper-box">
@@ -688,7 +700,6 @@
               <span style="font-size:0.75em; color:#64748b;">打 (PAR${currentHolePar})</span>
             </div>
 
-            <!-- オリンピックボタン -->
             <div style="font-size:0.7em; font-weight:bold; color:#475569; margin-bottom:2px;">オリンピック:</div>
             <div class="btn-grid-oly">
               <button type="button" class="btn-oly ${st.olympic==='gold'?'active':''}" id="btn-oly-${pId}-gold" onclick="toggleOly('${pId}', 'gold')">🥇金(+4)</button>
@@ -698,7 +709,6 @@
               <button type="button" class="btn-oly ${st.olympic==='dia'?'active':''}" id="btn-oly-${pId}-dia" onclick="toggleOly('${pId}', 'dia')">💎ダイヤ(+5)</button>
             </div>
 
-            <!-- ペナルティボタン -->
             <div style="font-size:0.7em; font-weight:bold; color:#be123c; margin-bottom:2px;">罰符 (-1P):</div>
             <div class="btn-grid-pen">
               <button type="button" class="btn-pen ${st.water?'active':''}" id="btn-pen-${pId}-water" onclick="togglePen('${pId}', 'water')">🌊池ポチャ</button>
@@ -884,7 +894,9 @@
         Object.keys(players).forEach(pId => {
           const pGroup = players[pId].group;
           const autoOrder = (hScores[pId] && hScores[pId].order) || (dynamicOrders[h] && dynamicOrders[h][pId]) || players[pId].pos || 1;
-          const tIndex = ( (pGroup - 1) + (autoOrder - 1) ) % activeTeams.length;
+          
+          // 平等化ロジック（奇数組は正順、偶数組は逆順）の採用
+          const tIndex = getBalancedTeamIndex(pGroup, autoOrder, activeTeams.length);
           const tKey = activeTeams[tIndex];
 
           if (!crossBest2Scores[tKey]) crossBest2Scores[tKey] = [];
@@ -1026,7 +1038,7 @@
               Object.keys(players).forEach(pId => {
                 const pGroup = players[pId].group;
                 const autoOrder = (hScores[pId] && hScores[pId].order) || (dynamicOrders[h] && dynamicOrders[h][pId]) || players[pId].pos || 1;
-                const tIndex = ( (pGroup - 1) + (autoOrder - 1) ) % activeTeams.length;
+                const tIndex = getBalancedTeamIndex(pGroup, autoOrder, activeTeams.length);
                 const pTeam = activeTeams[tIndex];
 
                 if (pTeam === tA) playerTotals[pId].teamPoints += diff;
