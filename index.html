@@ -33,6 +33,8 @@
 
     .btn-submit { background: #27ae60; color: white; font-weight: bold; padding: 12px; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; font-size: 1em; }
     .btn-submit:hover { background: #219150; }
+    .btn-edit-unlock { background: #d97706; color: white; font-weight: bold; padding: 10px; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 10px; }
+
     .btn-share-line { background: #06c755; color: white; font-weight: bold; padding: 10px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: block; text-align: center; margin-top: 6px; }
     .btn-share-viewer { background: #64748b; color: white; font-weight: bold; padding: 10px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: block; text-align: center; margin-top: 6px; }
 
@@ -81,6 +83,8 @@
 
     .past-room-item { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
     .past-room-item:hover { background: #e2e8f0; }
+
+    .locked-container { opacity: 0.6; pointer-events: none; }
   </style>
 </head>
 <body>
@@ -121,6 +125,32 @@
       </div>
     </div>
 
+    <!-- 全18ホール事前PAR設定グリッド -->
+    <div style="margin-top:15px; background:#f8fafc; border:1px solid #cbd5e1; padding:10px; border-radius:8px;">
+      <div style="font-weight:bold; font-size:0.85em; color:#1e3a8a; margin-bottom:6px;">⛳️ 全18ホールの事前PAR設定</div>
+      <div style="display:grid; grid-template-columns: repeat(9, 1fr); gap:4px; font-size:0.7em; text-align:center;">
+        <div><b>1H</b><select id="init-par-1"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
+        <div><b>2H</b><select id="init-par-2"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
+        <div><b>3H</b><select id="init-par-3"><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></div>
+        <div><b>4H</b><select id="init-par-4"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
+        <div><b>5H</b><select id="init-par-5"><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option></select></div>
+        <div><b>6H</b><select id="init-par-6"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
+        <div><b>7H</b><select id="init-par-7"><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></div>
+        <div><b>8H</b><select id="init-par-8"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
+        <div><b>9H</b><select id="init-par-9"><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option></select></div>
+
+        <div><b>10H</b><select id="init-par-10"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
+        <div><b>11H</b><select id="init-par-11"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
+        <div><b>12H</b><select id="init-par-12"><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></div>
+        <div><b>13H</b><select id="init-par-13"><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option></select></div>
+        <div><b>14H</b><select id="init-par-14"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
+        <div><b>15H</b><select id="init-par-15"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
+        <div><b>16H</b><select id="init-par-16"><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></div>
+        <div><b>17H</b><select id="init-par-17"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select></div>
+        <div><b>18H</b><select id="init-par-18"><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option></select></div>
+      </div>
+    </div>
+
     <div id="group-inputs-container" style="margin-top:15px;"></div>
 
     <button class="btn-submit" onclick="createTournament()">コンペを作成してLINE共有リンクを発行</button>
@@ -155,24 +185,30 @@
 
     <div class="tab-group" id="hole-tabs"></div>
 
-    <div style="margin-bottom:10px;">
-      <label style="font-size:0.8em; font-weight:bold;">ホールPAR設定</label>
-      <div class="par-btn-group">
-        <button class="btn-par" id="btn-par3" onclick="setHolePar(3)">PAR 3</button>
-        <button class="btn-par active" id="btn-par4" onclick="setHolePar(4)">PAR 4</button>
-        <button class="btn-par" id="btn-par5" onclick="setHolePar(5)">PAR 5</button>
+    <div id="unlock-btn-container" style="display:none;">
+      <button class="btn-edit-unlock" onclick="unlockHoleForm()">✏️ このホールのスコアを編集する</button>
+    </div>
+
+    <div id="hole-form-wrapper">
+      <div style="margin-bottom:10px;">
+        <label style="font-size:0.8em; font-weight:bold;">ホールPAR設定</label>
+        <div class="par-btn-group">
+          <button class="btn-par" id="btn-par3" onclick="setHolePar(3)">PAR 3</button>
+          <button class="btn-par active" id="btn-par4" onclick="setHolePar(4)">PAR 4</button>
+          <button class="btn-par" id="btn-par5" onclick="setHolePar(5)">PAR 5</button>
+        </div>
       </div>
+
+      <div class="chip-box" id="chip-box" style="display:none;">
+        <label id="chip-title-label" style="font-size:0.85em; font-weight:bold; color:#854d0e;">🚩 チップ対象ホール (5P)</label>
+        <select id="chip-winner-select"></select>
+        <div style="font-size:0.75em; color:#854d0e; margin-top:4px;">※他全参加者から各5P獲得（該当なしは持越し）</div>
+      </div>
+
+      <div id="player-input-list"></div>
+
+      <button class="btn-submit" id="btn-submit-hole" onclick="saveHoleScores()">このホールのスコアを送信・次ホールへ</button>
     </div>
-
-    <div class="chip-box" id="chip-box" style="display:none;">
-      <label id="chip-title-label" style="font-size:0.85em; font-weight:bold; color:#854d0e;">🚩 チップ対象ホール (5P)</label>
-      <select id="chip-winner-select"></select>
-      <div style="font-size:0.75em; color:#854d0e; margin-top:4px;">※他全参加者から各5P獲得（該当なしは持越し）</div>
-    </div>
-
-    <div id="player-input-list"></div>
-
-    <button class="btn-submit" onclick="saveHoleScores()">このホールのスコアを送信・次ホールへ</button>
   </div>
 
   <!-- リーダーボード & 詳細履歴 -->
@@ -232,6 +268,7 @@
     let currentHolePar = 4;
     let playerSortMode = 'total';
     let historyViewMode = 'vegas';
+    let isEditingUnlocked = false; 
     let globalData = { players: {}, scores: {}, pars: {}, chips: {}, startCourse: "OUT", groupCount: 3, teamCount: 4 };
 
     let tempInputState = {}; 
@@ -249,16 +286,13 @@
       return ALL_TEAM_NAMES.slice(0, num);
     }
 
-    // 打順合計を全チーム均一化（合計「5」）にするチーム判定ロジック
     function getBalancedTeamIndex(groupNum, orderNum, teamNum) {
       const g = groupNum - 1; 
       const o = orderNum - 1; 
 
       if (g % 2 === 0) {
-        // 奇数組目（1組目, 3組目...）は正順
         return o % teamNum;
       } else {
-        // 偶数組目（2組目, 4組目...）は完全逆順（1打手➔4打手, 2打手➔3打手）
         const invOrder = (teamNum - 1) - (o % teamNum);
         return invOrder % teamNum;
       }
@@ -378,7 +412,10 @@
       }
 
       let pars = {};
-      for(let h=1; h<=18; h++) pars[h] = 4;
+      for(let h=1; h<=18; h++) {
+        const parSel = document.getElementById(`init-par-${h}`);
+        pars[h] = parSel ? parseInt(parSel.value) : 4;
+      }
 
       db.ref(`rooms/${roomId}`).set({
         title: title,
@@ -500,6 +537,8 @@
     function selectHole(h) {
       selectedHole = h;
       tempInputState = {}; 
+      isEditingUnlocked = false; 
+
       const seq = getHoleSequence();
 
       seq.forEach(i => {
@@ -628,6 +667,11 @@
       }
     }
 
+    function unlockHoleForm() {
+      isEditingUnlocked = true;
+      renderInputForm();
+    }
+
     function renderInputForm() {
       updateChipUI();
 
@@ -635,28 +679,42 @@
       const totalGroups = globalData.groupCount || 3;
       let isChipHole = (currentHolePar === 3 || currentHolePar === 5);
 
+      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
+      const groupPlayers = Object.entries(globalData.players || {}).filter(([id, p]) => p.group === myGroup);
+      
+      const isAlreadySubmitted = groupPlayers.some(([pId]) => holeScores[pId] && holeScores[pId].score !== undefined);
+
+      const unlockBtnContainer = document.getElementById('unlock-btn-container');
+      const holeFormWrapper = document.getElementById('hole-form-wrapper');
+
+      if (isAlreadySubmitted && !isEditingUnlocked) {
+        unlockBtnContainer.style.display = 'block';
+        holeFormWrapper.classList.add('locked-container');
+      } else {
+        unlockBtnContainer.style.display = 'none';
+        holeFormWrapper.classList.remove('locked-container');
+      }
+
       let headerInfo = `【${selectedHole}番ホール (PAR${currentHolePar})】スコア＆イベント入力`;
-      headerInfo += `<div style="font-size:0.75em; color:#2563eb; font-weight:normal; margin-top:2px;">※「▲上へ」「▼下へ」ボタンで各ホールの打順（1〜4打手）を入れ替え可能です</div>`;
-      if (isChipHole && myGroup !== totalGroups) {
-        headerInfo += `<div style="font-size:0.75em; color:#d97706; font-weight:normal; margin-top:2px;">※ニアピン・ドラコンの入力は最終組（${totalGroups}組目）の代表者が行います</div>`;
+      if (isAlreadySubmitted && !isEditingUnlocked) {
+        headerInfo += `<div style="font-size:0.8em; color:#d97706; font-weight:bold; margin-top:2px;">🔒 このホールのスコアは送信済みです（編集ボタンで解除）</div>`;
+      } else {
+        headerInfo += `<div style="font-size:0.75em; color:#2563eb; font-weight:normal; margin-top:2px;">※「▲上へ」「▼下へ」ボタンで各ホールの打順（1〜4打手）を入れ替え可能です</div>`;
       }
 
       list.innerHTML = `<p style="font-size:0.85em; font-weight:bold; margin-bottom:8px;">${headerInfo}</p>`;
 
       const seq = getHoleSequence();
       const dynamicOrders = computeDynamicHoleOrders(seq, globalData.players || {}, globalData.scores || {}, globalData.pars || {});
-      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
       const activeTeams = getActiveTeamNames();
 
-      const groupPlayers = Object.entries(globalData.players || {})
-        .filter(([id, p]) => p.group === myGroup)
-        .sort((a, b) => {
-          const orderA = (holeScores[a[0]] && holeScores[a[0]].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][a[0]]) || a[1].pos || 1;
-          const orderB = (holeScores[b[0]] && holeScores[b[0]].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][b[0]]) || b[1].pos || 1;
-          return orderA - orderB;
-        });
+      const sortedGroupPlayers = groupPlayers.sort((a, b) => {
+        const orderA = (holeScores[a[0]] && holeScores[a[0]].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][a[0]]) || a[1].pos || 1;
+        const orderB = (holeScores[b[0]] && holeScores[b[0]].order) || (dynamicOrders[selectedHole] && dynamicOrders[selectedHole][b[0]]) || b[1].pos || 1;
+        return orderA - orderB;
+      });
 
-      groupPlayers.forEach(([pId, p], idx) => {
+      sortedGroupPlayers.forEach(([pId, p], idx) => {
         const curData = holeScores[pId] || {};
         const curScore = curData.score || currentHolePar;
         
@@ -686,7 +744,7 @@
               </div>
               <div>
                 ${idx > 0 ? `<button class="btn-order" onclick="changePlayerOrder('\${pId}', -1)">▲上へ</button>` : ''}
-                ${idx < groupPlayers.length - 1 ? `<button class="btn-order" onclick="changePlayerOrder('\${pId}', 1)">▼下へ</button>` : ''}
+                ${idx < sortedGroupPlayers.length - 1 ? `<button class="btn-order" onclick="changePlayerOrder('\${pId}', 1)">▼下へ</button>` : ''}
               </div>
             </div>
 
@@ -760,6 +818,8 @@
         db.ref(`rooms/${roomId}/chips/${selectedHole}`).set(chipWinner);
       }
 
+      isEditingUnlocked = false; 
+
       const nextHole = getNextHole(selectedHole);
       if (nextHole) {
         alert(`${selectedHole}番ホールのスコアを送信しました！次の${nextHole}番ホールへ移動します。`);
@@ -795,6 +855,7 @@
       }
     }
 
+    // オナー自動判定（グロス＝素の打数が少ない順）
     function computeDynamicHoleOrders(seq, players, scores, pars) {
       let holeOrders = {};
 
@@ -822,14 +883,14 @@
 
             let currentRankings = prevOrderList.map(pId => {
               const pData = prevHScores[pId];
-              const pRaw = pData ? pData.score : prevPar;
-              const pNet = getAdjustedScore(pRaw, players[pId], prevPar);
+              // 素の打数（グロススコア）を評価基準に使用
+              const pRaw = pData ? pData.score : prevPar; 
               const prevPosIdx = prevOrderList.indexOf(pId);
-              return { id: pId, net: pNet, prevPos: prevPosIdx };
+              return { id: pId, gross: pRaw, prevPos: prevPosIdx };
             });
 
             currentRankings.sort((a, b) => {
-              if (a.net !== b.net) return a.net - b.net;
+              if (a.gross !== b.gross) return a.gross - b.gross;
               return a.prevPos - b.prevPos;
             });
 
@@ -894,8 +955,6 @@
         Object.keys(players).forEach(pId => {
           const pGroup = players[pId].group;
           const autoOrder = (hScores[pId] && hScores[pId].order) || (dynamicOrders[h] && dynamicOrders[h][pId]) || players[pId].pos || 1;
-          
-          // 平等化ロジック（奇数組は正順、偶数組は逆順）の採用
           const tIndex = getBalancedTeamIndex(pGroup, autoOrder, activeTeams.length);
           const tKey = activeTeams[tIndex];
 
