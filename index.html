@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>複数組コンペ対応 リアルタイムゴルフ計算アプリ</title>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+  <style>
+    body { font-family: sans-serif; padding: 12px; max-width: 700px; margin: 0 auto; background: #f4f6f8; color: #334155; }
+    .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 15px; }
+    h1 { font-size: 1.25em; color: #1e293b; margin-top: 0; }
+    h2 { font-size: 1em; color: #1e3a8a; margin-bottom: 8px; border-bottom: 2px solid #3b82f6; padding-bottom: 4px; }
+    
+    .tab-group { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; }
+    .btn-tab { flex: 1; min-width: 50px; padding: 8px; border: 1px solid #cbd5e1; background: #e2e8f0; font-weight: bold; border-radius: 6px; cursor: pointer; text-align: center; }
+    .btn-tab.active { background: #2563eb; color: white; border-color: #2563eb; }
+
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    input, select, textarea, button { width: 100%; padding: 8px; margin-top: 4px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
+    textarea { font-family: monospace; font-size: 0.85em; }
+
+    .btn-submit { background: #27ae60; color: white; font-weight: bold; padding: 12px; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+    .btn-submit:hover { background: #219150; }
+    .btn-secondary { background: #64748b; color: white; font-weight: bold; padding: 8px; border: none; border-radius: 6px; cursor: pointer; margin-top: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.85em; }
+    th, td { border: 1px solid #ddd; padding: 6px 4px; text-align: center; }
+    th { background: #eef2f5; }
+
+    .rank-1 { background: #fef08a; font-weight: bold; }
+    .badge-team { padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75em; background: #dbeafe; color: #1e3a8a; }
+    .desc-text { font-size: 0.8em; color: #64748b; margin-top: -4px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+  <h1>⛳️ 複数組コンペ計算（リアルタイム同期）</h1>
+
+  <!-- ルーム ＆ 一括登録設定 -->
+  <div class="card" id="room-sec">
+    <h2>1. コンペルーム設定</h2>
+    <label>ルームID（全プレイヤー共通）</label>
+    <input type="text" id="roomId" value="golf-cup-2026" placeholder="例: tournament1017">
+
+    <label style="margin-top:12px;">担当する組の選択</label>
+    <select id="myGroupSelect">
+      <option value="1">1組目 代表者</option>
+      <option value="2">2組目 代表者</option>
+      <option value="3">3組目 代表者</option>
+      <option value="4">4組目 代表者</option>
+      <option value="5">5組目 代表者</option>
+    </select>
+
+    <div style="margin-top:15px; border-top:1px solid #e2e8f0; padding-top:12px;">
+      <label>📋 参加者の一括登録 (幹事用)</label>
+      <div class="desc-text">1行につき「名前, ハンディ, 組番号」の順で入力してください</div>
+      <textarea id="bulkInput" rows="6" placeholder="山田太郎, 0, 1&#10;佐藤花子, 2, 1&#10;鈴木一郎, 4, 1&#10;田中次郎, 0, 2&#10;高橋三郎, 3, 2&#10;伊藤四郎, 5, 2"></textarea>
+      <button class="btn-secondary" onclick="registerBulkPlayers()">一括登録データを読み込み</button>
+    </div>
+
+    <button class="btn-submit" onclick="connectRoom()" style="margin-top:15px;">ルームに接続・同期開始</button>
+  </div>
+
+  <!-- スコア入力エリア -->
+  <div class="card" id="input-sec" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h2 id="input-group-title">スコア入力</h2>
+      <span style="color:#27ae60; font-size:0.8em; font-weight:bold;">● リアルタイム同期中</span>
+    </div>
+
+    <!-- ホール選択タブ (1〜18ホール) -->
+    <div class="tab-group" id="hole-tabs"></div>
+
+    <div id="player-input-list"></div>
+
+    <button class="btn-submit" onclick="saveHoleScores()">このホールのスコアを送信</button>
+  </div>
+
+  <!-- リーダーボード（チーム対抗 ＆ 個人総合） -->
+  <div class="card" id="board-sec" style="display:none;">
+    <h2>🏆 チーム対抗 順位（各組ベスト2合計）</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>順位</th>
+          <th>チーム</th>
+          <th>チーム通算打数</th>
+        </tr>
+      </thead>
+      <tbody id="team-rank-body"></tbody>
+    </table>
+
+    <h2 style="margin-top:20px;">👤 個人総合リーダーボード</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>順位</th>
+          <th>組</th>
+          <th>名前</th>
+          <th>ネット打数 (グロス)</th>
+          <th>獲得P</th>
+        </tr>
+      </thead>
+      <tbody id="player-rank-body"></tbody>
+    </table>
+  </div>
+
+  <script>
+    // 設定いただいた Firebase URL
+    const firebaseConfig = {
+      databaseURL: "https://okadagolf-app-default-rtdb.firebaseio.com/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let roomId = "";
+    let myGroup = 1;
+    let selectedHole = 1;
+    let globalData = { players: {}, scores: {} };
+
+    // 初期18ホールタブの作成
+    function initHoleTabs() {
+      const tabContainer = document.getElementById('hole-tabs');
+      tabContainer.innerHTML = '';
+      for (let h = 1; h <= 18; h++) {
+        tabContainer.innerHTML += `
+          <button class="btn-tab ${h === 1 ? 'active' : ''}" id="tab-h${h}" onclick="selectHole(${h})">${h}H</button>
+        `;
+      }
+    }
+
+    // テキストエリアからのプレイヤー一括登録処理
+    function registerBulkPlayers() {
+      const text = document.getElementById('bulkInput').value.trim();
+      if (!text) return alert("登録するテキストを入力してください");
+
+      const lines = text.split('\n');
+      let newPlayers = {};
+      let count = 0;
+
+      lines.forEach((line) => {
+        const parts = line.split(',').map(s => s.trim());
+        if (parts.length >= 1 && parts[0] !== "") {
+          count++;
+          const pId = `p${count}`;
+          newPlayers[pId] = {
+            name: parts[0],
+            hdcp: parts[1] ? parseInt(parts[1]) || 0 : 0,
+            group: parts[2] ? parseInt(parts[2]) || 1 : 1
+          };
+        }
+      });
+
+      if (count === 0) return alert("有効なデータが見つかりませんでした");
+
+      roomId = document.getElementById('roomId').value.trim();
+      if (!roomId) return alert("ルームIDを入力してください");
+
+      db.ref(`rooms/${roomId}/players`).set(newPlayers).then(() => {
+        alert(`${count}名のプレイヤーを一括登録しました！`);
+      });
+    }
+
+    function connectRoom() {
+      roomId = document.getElementById('roomId').value.trim();
+      myGroup = parseInt(document.getElementById('myGroupSelect').value);
+
+      if (!roomId) return alert("ルームIDを入力してください");
+
+      document.getElementById('room-sec').style.display = 'none';
+      document.getElementById('input-sec').style.display = 'block';
+      document.getElementById('board-sec').style.display = 'block';
+      document.getElementById('input-group-title').innerText = `${myGroup}組目のスコア入力`;
+
+      initHoleTabs();
+
+      // Firebaseデータ同期処理
+      db.ref(`rooms/${roomId}`).on('value', (snapshot) => {
+        const val = snapshot.val();
+        if (val) {
+          globalData = val;
+        }
+        renderInputForm();
+        calculateLeaderboard();
+      });
+    }
+
+    function selectHole(h) {
+      selectedHole = h;
+      for (let i = 1; i <= 18; i++) {
+        const btn = document.getElementById(`tab-h${i}`);
+        if (btn) btn.className = `btn-tab ${i === h ? 'active' : ''}`;
+      }
+      renderInputForm();
+    }
+
+    function renderInputForm() {
+      const list = document.getElementById('player-input-list');
+      list.innerHTML = `<p style="font-size:0.85em; font-weight:bold; margin-bottom:8px;">【${selectedHole}番ホール】打数＆イベント入力</p>`;
+
+      const groupPlayers = Object.entries(globalData.players || {})
+        .filter(([id, p]) => p.group === myGroup);
+
+      if (groupPlayers.length === 0) {
+        list.innerHTML += `<div style="font-size:0.8em; color:#ef4444;">※${myGroup}組目に登録されているプレイヤーがいません。「一括登録」を行ってください。</div>`;
+        return;
+      }
+
+      const holeScores = (globalData.scores && globalData.scores[selectedHole]) || {};
+
+      groupPlayers.forEach(([pId, p]) => {
+        const curScore = holeScores[pId] ? holeScores[pId].score : 4;
+        const curOly = holeScores[pId] ? holeScores[pId].olympic || "" : "";
+
+        list.innerHTML += `
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:8px; border-radius:6px; margin-bottom:8px;">
+            <div style="font-weight:bold; font-size:0.9em; margin-bottom:4px;">${p.name} (HDCP:${p.hdcp})</div>
+            <div class="grid-3">
+              <div>
+                <span style="font-size:0.7em;">打数</span>
+                <input type="number" id="input-score-${pId}" value="${curScore}" min="1">
+              </div>
+              <div style="grid-column: span 2;">
+                <span style="font-size:0.7em;">オリンピック</span>
+                <select id="input-oly-${pId}">
+                  <option value="" ${curOly===''?'selected':''}>なし</option>
+                  <option value="gold" ${curOly==='gold'?'selected':''}>🥇 金(+4)</option>
+                  <option value="silver" ${curOly==='silver'?'selected':''}>🥈 銀(+3)</option>
+                  <option value="bronze" ${curOly==='bronze'?'selected':''}>🥉 銅(+2)</option>
+                  <option value="iron" ${curOly==='iron'?'selected':''}>鉄(+1)</option>
+                  <option value="dia" ${curOly==='dia'?'selected':''}>💎 ダイヤ(+5)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function saveHoleScores() {
+      const groupPlayers = Object.entries(globalData.players || {})
+        .filter(([id, p]) => p.group === myGroup);
+
+      groupPlayers.forEach(([pId]) => {
+        const scoreVal = parseInt(document.getElementById(`input-score-${pId}`).value) || 4;
+        const olyVal = document.getElementById(`input-oly-${pId}`).value;
+
+        db.ref(`rooms/${roomId}/scores/${selectedHole}/${pId}`).set({
+          score: scoreVal,
+          olympic: olyVal
+        });
+      });
+
+      alert(`${selectedHole}番ホールのスコアを送信しました！`);
+    }
+
+    // 集計処理
+    function calculateLeaderboard() {
+      const players = globalData.players || {};
+      const scores = globalData.scores || {};
+
+      let teamTotals = {};
+      let playerTotals = {};
+
+      Object.keys(players).forEach(pId => {
+        playerTotals[pId] = { ...players[pId], gross: 0, net: 0, points: 0 };
+        teamTotals[players[pId].group] = 0;
+      });
+
+      Object.keys(scores).forEach(h => {
+        const hScores = scores[h];
+        let groupHoleScores = {};
+
+        Object.keys(players).forEach(pId => {
+          const g = players[pId].group;
+          if (!groupHoleScores[g]) groupHoleScores[g] = [];
+
+          if (hScores[pId]) {
+            const rawScore = hScores[pId].score;
+            const netScore = Math.max(1, rawScore - players[pId].hdcp);
+
+            playerTotals[pId].gross += rawScore;
+            playerTotals[pId].net += netScore;
+
+            groupHoleScores[g].push(netScore);
+
+            const oly = hScores[pId].olympic;
+            if(oly === 'gold') playerTotals[pId].points += 12;
+            if(oly === 'silver') playerTotals[pId].points += 9;
+            if(oly === 'bronze') playerTotals[pId].points += 6;
+            if(oly === 'iron') playerTotals[pId].points += 3;
+            if(oly === 'dia') playerTotals[pId].points += 15;
+          }
+        });
+
+        // チームベスト2集計
+        Object.keys(groupHoleScores).forEach(g => {
+          if (groupHoleScores[g].length >= 2) {
+            groupHoleScores[g].sort((a, b) => a - b);
+            teamTotals[g] += (groupHoleScores[g][0] + groupHoleScores[g][1]);
+          }
+        });
+      });
+
+      // チーム順位
+      const teamBody = document.getElementById('team-rank-body');
+      teamBody.innerHTML = '';
+      const sortedTeams = Object.keys(teamTotals).sort((a, b) => teamTotals[a] - teamTotals[b]);
+
+      sortedTeams.forEach((g, idx) => {
+        teamBody.innerHTML += `
+          <tr class="${idx === 0 ? 'rank-1' : ''}">
+            <td>${idx + 1}位</td>
+            <td><span class="badge-team">${g}組目 チーム</span></td>
+            <td><b>${teamTotals[g]} 打</b></td>
+          </tr>
+        `;
+      });
+
+      // 個人順位
+      const playerBody = document.getElementById('player-rank-body');
+      playerBody.innerHTML = '';
+      const sortedPlayers = Object.values(playerTotals).sort((a, b) => a.net - b.net);
+
+      sortedPlayers.forEach((p, idx) => {
+        playerBody.innerHTML += `
+          <tr class="${idx === 0 ? 'rank-1' : ''}">
+            <td>${idx + 1}位</td>
+            <td><span class="badge-team">${p.group}組</span></td>
+            <td><b>${p.name}</b></td>
+            <td>${p.net} 打 (${p.gross})</td>
+            <td><b>${p.points} P</b></td>
+          </tr>
+        `;
+      });
+    }
+  </script>
+</body>
+</html>
