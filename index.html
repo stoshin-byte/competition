@@ -31,6 +31,9 @@
     .btn-submit:hover { background: #219150; }
     .btn-edit-unlock { background: #d97706; color: white; font-weight: bold; padding: 10px; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 10px; }
 
+    .btn-rule-modal { background: #0284c7; color: white; font-weight: bold; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8em; width: auto; margin-top: 0; }
+    .btn-rule-modal:hover { background: #0369a1; }
+
     .btn-share-line { background: #06c755; color: white; font-weight: bold; padding: 10px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: block; text-align: center; margin-top: 6px; }
     .btn-share-viewer { background: #64748b; color: white; font-weight: bold; padding: 10px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: block; text-align: center; margin-top: 6px; }
 
@@ -88,6 +91,13 @@
     .par-label-title { font-weight: bold; font-size: 0.8em; color: #1e3a8a; margin-top: 8px; margin-bottom: 2px; }
     
     .personal-select-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
+
+    /* モーダル用スタイリング */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 15px; box-sizing: border-box; }
+    .modal-body-content { background: white; padding: 18px; border-radius: 12px; width: 100%; max-width: 580px; max-height: 85vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .modal-nav-tabs { display: flex; gap: 6px; margin-bottom: 12px; border-bottom: 2px solid #cbd5e1; padding-bottom: 6px; }
+    .btn-modal-tab { flex: 1; padding: 8px; font-weight: bold; font-size: 0.82em; border: 1px solid #cbd5e1; background: #f1f5f9; border-radius: 6px; cursor: pointer; text-align: center; }
+    .btn-modal-tab.active { background: #0284c7; color: white; border-color: #0284c7; }
   </style>
 </head>
 <body>
@@ -178,11 +188,11 @@
   <!-- スコア入力エリア（代表者用） -->
   <div class="card" id="input-sec" style="display:none;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h2 id="input-group-title">スコア入力</h2>
-      <span style="color:#27ae60; font-size:0.8em; font-weight:bold;">● リアルタイム同期中</span>
+      <h2 id="input-group-title" style="margin:0; border:none;">スコア入力</h2>
+      <button type="button" class="btn-rule-modal" onclick="openRuleModal()">📖 ルール説明</button>
     </div>
 
-    <div class="tab-group" id="hole-tabs"></div>
+    <div class="tab-group" id="hole-tabs" style="margin-top:10px;"></div>
 
     <div id="unreachable-msg" class="unreachable-box" style="display:none;">
       ⚠️ 前のホールのスコアが未送信です。前のホールを先に送信してください。
@@ -209,9 +219,10 @@
   <div class="card" id="board-sec" style="display:none;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <h2 style="margin:0; border:none;" id="board-room-title">👤 個人総合リーダーボード</h2>
+      <button type="button" class="btn-rule-modal" onclick="openRuleModal()">📖 ルール説明</button>
     </div>
 
-    <div class="sort-btn-group" style="margin-top:8px;">
+    <div class="sort-btn-group" style="margin-top:10px;">
       <button type="button" class="btn-sort active" id="btn-sort-total" onclick="setPlayerSort('total')">👑 総合P順 (全合算)</button>
       <button type="button" class="btn-sort" id="btn-sort-net" onclick="setPlayerSort('net')">⛳️ ネット打数順</button>
       <button type="button" class="btn-sort" id="btn-sort-game" onclick="setPlayerSort('game')">💎 ゲームP順</button>
@@ -248,7 +259,6 @@
       <div id="history-vegas-container"></div>
       <div id="history-game-container" style="display:none;"></div>
 
-      <!-- 個人成績詳細表示エリア -->
       <div id="history-personal-container" style="display:none;">
         <div class="personal-select-box">
           <label style="font-weight:bold; font-size:0.85em; color:#1e3a8a;">👤 確認したいプレイヤーを選択:</label>
@@ -256,6 +266,87 @@
         </div>
         <div id="personal-detail-list"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- 2タブ切替式 ルール説明モーダル -->
+  <div id="rule-modal" class="modal-overlay" style="display:none;" onclick="closeRuleModalOuter(event)">
+    <div class="modal-body-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:6px; margin-bottom:8px;">
+        <h2 style="margin:0; border:none; font-size:1.1em; color:#1e3a8a;">📖 コンペ対戦ルールガイド</h2>
+        <button type="button" onclick="closeRuleModal()" style="width:auto; padding:4px 8px; font-weight:bold; background:#e2e8f0; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer;">✕ 閉じる</button>
+      </div>
+
+      <!-- モーダル内タブ切替ボタン -->
+      <div class="modal-nav-tabs">
+        <button type="button" class="btn-modal-tab active" id="btn-rule-tab-basic" onclick="switchRuleTab('basic')">🏆 基本ルール</button>
+        <button type="button" class="btn-modal-tab" id="btn-rule-tab-teams" onclick="switchRuleTab('teams')">🎰 チーム分けパターン</button>
+      </div>
+
+      <!-- タブ1: 基本ルール -->
+      <div id="rule-tab-basic-content" style="font-size:0.8em; line-height:1.5; color:#334155;">
+        <div style="font-weight:bold; color:#1e3a8a;">🏆 1. 総合順位の仕組み</div>
+        <div>総合P ＝ スコアP ＋ ゲームP ＋ チームP（完全ゼロサム）</div>
+        <ul style="margin:4px 0 8px 18px; padding:0;">
+          <li><b>スコアP</b>: (平均ネット打数 − 自分の打数) × 10倍（1打差＝10P）</li>
+          <li><b>ゲームP</b>: オリンピック ＋ ニアピン/ドラコン ＋ 罰符の合算</li>
+          <li><b>チームP</b>: 毎ホールのラスベガス全対戦収支</li>
+        </ul>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px;">💎 2. オリンピック＆ペナルティ一覧</div>
+        <ul style="margin:4px 0 8px 18px; padding:0;">
+          <li>🥇 <b>金 (+4P)</b> : グリーン外チップイン</li>
+          <li>🥈 <b>銀 (+3P)</b> : 最長パット（1パット）</li>
+          <li>🥉 <b>銅 (+2P)</b> : 2番目に長いパット（1パット）</li>
+          <li>鉄 <b>鉄 (+1P)</b> : 3番目に長いパット（1パット）</li>
+          <li>💎 <b>ダイヤ (+5P)</b> : 4番目に長いパット（1パット）</li>
+          <li>💥 <b>罰符 (-1P)</b> : 池 / OB / 3パット / バンカー（全他参加者へ各1P支払）</li>
+          <li>🚩 <b>ニアピン/ドラコン (+5P〜)</b> : Par3/Par5（獲得者なしは次回へ持ち越し）</li>
+        </ul>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px;">🎰 3. ラスベガスポイント計算</div>
+        <div>上位2名のネット打数で2桁数字（例: 4打と5打➔45）を作成。相手チームとの数字の差額がチームPとなります。（バーディーで相手数字反転）</div>
+      </div>
+
+      <!-- タブ2: ラスベガスのチーム分けパターン -->
+      <div id="rule-tab-teams-content" style="display:none; font-size:0.78em; line-height:1.45; color:#334155;">
+        <div style="font-weight:bold; color:#1e3a8a; margin-bottom:4px;">1. 【3組9名】3チーム対戦 (各組3名)</div>
+        <table>
+          <thead><tr><th>打順</th><th>1組目</th><th>2組目</th><th>3組目</th></tr></thead>
+          <tbody>
+            <tr><td>1打手</td><td><b>チームA</b></td><td><b>チームB</b></td><td><b>チームC</b></td></tr>
+            <tr><td>2打手</td><td><b>チームB</b></td><td><b>チームC</b></td><td><b>チームA</b></td></tr>
+            <tr><td>3打手</td><td><b>チームC</b></td><td><b>チームA</b></td><td><b>チームB</b></td></tr>
+          </tbody>
+        </table>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">2. 【3組12名】3チーム対戦 (各組4名)</div>
+        <table>
+          <thead><tr><th>打順</th><th>1組目</th><th>2組目</th><th>3組目</th></tr></thead>
+          <tbody>
+            <tr><td>1打手</td><td>チームA</td><td>チームB</td><td>チームC</td></tr>
+            <tr><td>2打手</td><td>チームB</td><td>チームC</td><td>チームA</td></tr>
+            <tr><td>3打手</td><td>チームC</td><td>チームA</td><td>チームB</td></tr>
+            <tr><td>4打手</td><td>チームA</td><td>チームB</td><td>チームC</td></tr>
+          </tbody>
+        </table>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">3. 【4組16名】4チーム対戦 (各組4名)</div>
+        <table>
+          <thead><tr><th>打順</th><th>1組目</th><th>2組目</th><th>3組目</th><th>4組目</th></tr></thead>
+          <tbody>
+            <tr><td>1打手</td><td>チームA</td><td>チームB</td><td>チームC</td><td>チームD</td></tr>
+            <tr><td>2打手</td><td>チームB</td><td>チームC</td><td>チームD</td><td>チームA</td></tr>
+            <tr><td>3打手</td><td>チームC</td><td>チームD</td><td>チームA</td><td>チームB</td></tr>
+            <tr><td>4打手</td><td>チームD</td><td>チームA</td><td>チームB</td><td>チームC</td></tr>
+          </tbody>
+        </table>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">4. 端数人数（10名・11名など）の場合</div>
+        <div style="font-size:0.9em; color:#475569;">4打手目のメンバーが入ったチームも、ラスベガス計算時は<b>上位2名（ベスト2）のみ採用</b>するため全チーム対等に勝負できます。</div>
+      </div>
+
+      <button type="button" class="btn-submit" onclick="closeRuleModal()" style="background:#64748b; margin-top:15px;">閉じる</button>
     </div>
   </div>
 
@@ -285,6 +376,40 @@
       "チームC": "badge-team-C", 
       "チームD": "badge-team-D"
     };
+
+    function openRuleModal() {
+      document.getElementById('rule-modal').style.display = 'flex';
+      switchRuleTab('basic');
+    }
+
+    function closeRuleModal() {
+      document.getElementById('rule-modal').style.display = 'none';
+    }
+
+    function closeRuleModalOuter(e) {
+      if (e.target.id === 'rule-modal') {
+        closeRuleModal();
+      }
+    }
+
+    function switchRuleTab(tabName) {
+      const basicBtn = document.getElementById('btn-rule-tab-basic');
+      const teamsBtn = document.getElementById('btn-rule-tab-teams');
+      const basicContent = document.getElementById('rule-tab-basic-content');
+      const teamsContent = document.getElementById('rule-tab-teams-content');
+
+      if (tabName === 'basic') {
+        basicBtn.classList.add('active');
+        teamsBtn.classList.remove('active');
+        basicContent.style.display = 'block';
+        teamsContent.style.display = 'none';
+      } else {
+        basicBtn.classList.remove('active');
+        teamsBtn.classList.add('active');
+        basicContent.style.display = 'none';
+        teamsContent.style.display = 'block';
+      }
+    }
 
     function getActiveTeamNames() {
       const num = globalData.teamCount || 3;
@@ -1269,14 +1394,12 @@
         });
       });
 
-      // スコアPを10倍（整数）にして集計
       if (totalPlayersCount > 0) {
         let netSum = 0;
         Object.values(playerTotals).forEach(p => { netSum += p.net; });
         const avgNet = netSum / totalPlayersCount;
 
         Object.keys(playerTotals).forEach(pId => {
-          // 10倍にして小数点以下をなくす
           const sP = Math.round((avgNet - playerTotals[pId].net) * 10);
           playerTotals[pId].scorePoints = sP;
           playerTotals[pId].totalPoints = sP + playerTotals[pId].olyPoints + playerTotals[pId].teamPoints;
