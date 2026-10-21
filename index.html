@@ -81,8 +81,13 @@
     .past-room-item { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
     .past-room-item:hover { background: #e2e8f0; }
 
-    .btn-delete-past { background: #ef4444; color: white; font-size: 0.75em; font-weight: bold; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; width: auto; margin-top: 0; }
+    .btn-action-past { font-size: 0.75em; font-weight: bold; padding: 6px 8px; border: none; border-radius: 6px; cursor: pointer; width: auto; margin-top: 0; }
+    .btn-load-past { background: #0284c7; color: white; }
+    .btn-load-past:hover { background: #0369a1; }
+    .btn-delete-past { background: #ef4444; color: white; }
     .btn-delete-past:hover { background: #dc2626; }
+
+    .editing-banner { background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 8px 12px; border-radius: 6px; font-size: 0.85em; font-weight: bold; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
     .locked-container { opacity: 0.5; pointer-events: none; }
     .unreachable-box { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.85em; margin-bottom: 10px; }
@@ -106,7 +111,12 @@
 
   <!-- 幹事用 設定画面 -->
   <div class="card" id="setup-sec">
-    <h2>👑 幹事用 コンペ新規作成</h2>
+    <h2>👑 幹事用 コンペ新規作成・編集</h2>
+
+    <div id="editing-status-banner" class="editing-banner" style="display:none;">
+      <span>✏️ 既存コンペ「<span id="editing-room-title-name"></span>」を編集中</span>
+      <button type="button" onclick="cancelEditingRoom()" style="width:auto; padding:2px 8px; font-size:0.8em; background:#cbd5e1; border:none; border-radius:4px; cursor:pointer;">新規作成に戻る</button>
+    </div>
     
     <label>コンペ名 / ルーム名</label>
     <input type="text" id="roomTitle" value="第1回ゴルフコンペ" placeholder="例: サークルコンペ">
@@ -162,10 +172,10 @@
 
     <div id="group-inputs-container" style="margin-top:15px;"></div>
 
-    <button type="button" class="btn-submit" onclick="createTournament()">コンペを作成してLINE共有リンクを発行</button>
+    <button type="button" class="btn-submit" id="btn-create-room" onclick="createTournament()">コンペを作成してLINE共有リンクを発行</button>
 
     <div style="margin-top:25px; border-top:2px solid #cbd5e1; padding-top:12px;">
-      <h2>📚 過去のコンペ履歴（過去ラウンドの振り返り）</h2>
+      <h2>📚 過去のコンペ履歴（再設定・編集・確認）</h2>
       <div id="past-rooms-list" style="font-size:0.85em; color:#64748b;">(読込中...)</div>
     </div>
   </div>
@@ -306,7 +316,7 @@
         </ul>
       </div>
 
-      <!-- タブ2: ラスベガス詳細ガイド（新規） -->
+      <!-- タブ2: ラスベガス詳細ガイド -->
       <div id="rule-tab-vegas-content" style="display:none; font-size:0.8em; line-height:1.5; color:#334155;">
         <div style="font-weight:bold; color:#1e3a8a; font-size:0.95em;">🎰 ラスベガス対戦の計算ルール</div>
 
@@ -385,7 +395,18 @@
             <tr><td>4打手</td><td>チームD</td><td>チームA</td><td>チームB</td><td>チームC</td></tr>
           </tbody>
         </table>
-        <div style="font-size:0.7em; color:#64748b; margin-top:2px;">※打順和が全チーム「10」で完全対等（各チームが1〜4打手を1名ずつ獲得）。</div>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">6. 【5組15〜20名】3〜4チーム対戦</div>
+        <div style="font-size:0.75em; color:#475569; line-height:1.4;">
+          • <b>5組15名 (3チーム)</b>: 1〜3組は完全巡回、4〜5組は交差配分（打順和10前後で均等）。<br>
+          • <b>5組20名 (4チーム)</b>: 1〜4組はラテン方陣、5組目は1〜4打手を順配分（打順和12.5前後で均等）。
+        </div>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">7. 💡 端数人数（10名・11名・15名など）の扱い</div>
+        <div style="font-size:0.75em; color:#475569; line-height:1.4;">
+          1組だけ3名で全参加人数に端数が出た場合、特定チームが4名、他チームが3名というように所属人数に差が生じます。<br>
+          ただし、ラスベガス計算時は全チーム<b>「チーム内上位2名（ベスト2）」</b>のスコアのみを自動抽出して2桁数字を作成するため、人数の少ないチームも不利になることなく完全対等に勝利を狙えます！
+        </div>
       </div>
 
       <button type="button" class="btn-submit" onclick="closeRuleModal()" style="background:#64748b; margin-top:15px;">閉じる</button>
@@ -400,6 +421,7 @@
     const db = firebase.database();
 
     let roomId = "";
+    let editingRoomId = null; // 既存コンペ再設定（上書き編集）用フラグ
     let myGroup = 0;
     let selectedHole = 1;
     let currentHolePar = 4;
@@ -559,9 +581,10 @@
                 <div style="font-weight:bold; color:#1e3a8a;">🏆 ${titleStr}</div>
                 <div style="font-size:0.75em; color:#64748b;">${dateStr} (${rData.groupCount || 3}組 / ${rData.teamCount || 3}チーム / ${pCount}名)</div>
               </div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <button type="button" class="btn-delete-past" onclick="deletePastRoom(event, '${rId}', '${titleStr}')">🗑️ 削除</button>
-                <div onclick="openPastRoom('${rId}')" style="font-size:0.8em; font-weight:bold; color:#2563eb; cursor:pointer;">閲覧 ➔</div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <button type="button" class="btn-action-past btn-load-past" onclick="loadRoomToSetup('${rId}')">⚙️ 再設定</button>
+                <button type="button" class="btn-action-past btn-delete-past" onclick="deletePastRoom(event, '${rId}', '${titleStr}')">🗑️ 削除</button>
+                <div onclick="openPastRoom('${rId}')" style="font-size:0.8em; font-weight:bold; color:#2563eb; cursor:pointer; margin-left:4px;">閲覧 ➔</div>
               </div>
             </div>
           `;
@@ -569,11 +592,71 @@
       });
     }
 
+    /* 過去のコンペを再設定用フォームに読み込み */
+    function loadRoomToSetup(rId) {
+      db.ref(`rooms/${rId}`).once('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        editingRoomId = rId;
+
+        document.getElementById('editing-status-banner').style.display = 'flex';
+        document.getElementById('editing-room-title-name').innerText = data.title || "コンペ";
+        document.getElementById('btn-create-room').innerText = "コンペ設定を上書き保存して共有リンク発行";
+
+        document.getElementById('roomTitle').value = data.title || "";
+        document.getElementById('groupCountSelect').value = data.groupCount || 3;
+        document.getElementById('teamCountSelect').value = data.teamCount || 3;
+        document.getElementById('startCourseSelect').value = data.startCourse || "OUT";
+
+        // PAR設定復元
+        const pars = data.pars || {};
+        let p3Count = 1;
+        let p5Count = 1;
+
+        for (let h = 1; h <= 18; h++) {
+          if (pars[h] === 3 && p3Count <= 4) {
+            document.getElementById(`par3-select-${p3Count}`).value = h;
+            p3Count++;
+          }
+          if (pars[h] === 5 && p5Count <= 4) {
+            document.getElementById(`par5-select-${p5Count}`).value = h;
+            p5Count++;
+          }
+        }
+
+        renderGroupSetupForms();
+
+        // プレイヤー情報復元
+        const players = data.players || {};
+        Object.values(players).forEach(p => {
+          const nameEl = document.getElementById(`g${p.group}-p${p.pos}-name`);
+          const hdcpEl = document.getElementById(`g${p.group}-p${p.pos}-hdcp`);
+          const ruleEl = document.getElementById(`g${p.group}-p${p.pos}-hdcpRule`);
+
+          if (nameEl) nameEl.value = p.name || "";
+          if (hdcpEl) hdcpEl.value = p.hdcp || 0;
+          if (ruleEl) ruleEl.value = p.hdcpRule || "none";
+        });
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    function cancelEditingRoom() {
+      editingRoomId = null;
+      document.getElementById('editing-status-banner').style.display = 'none';
+      document.getElementById('btn-create-room').innerText = "コンペを作成してLINE共有リンクを発行";
+      document.getElementById('roomTitle').value = "第1回ゴルフコンペ";
+      renderGroupSetupForms();
+    }
+
     function deletePastRoom(event, rId, title) {
       event.stopPropagation();
       if (confirm(`「${title}」のコンペデータを完全に削除してもよろしいですか？\n※削除したデータは復元できません。`)) {
         db.ref(`rooms/${rId}`).remove().then(() => {
           alert('コンペデータを削除しました。');
+          if (editingRoomId === rId) cancelEditingRoom();
           loadPastRoomsList();
         }).catch((err) => {
           alert('削除処理でエラーが発生しました: ' + err.message);
@@ -653,7 +736,11 @@
       par3Holes.forEach(h => pars[h] = 3);
       par5Holes.forEach(h => pars[h] = 5);
 
-      roomId = "room-" + Math.random().toString(36).substring(2, 8);
+      if (editingRoomId) {
+        roomId = editingRoomId;
+      } else {
+        roomId = "room-" + Math.random().toString(36).substring(2, 8);
+      }
       
       let players = {};
       let pCount = 0;
@@ -677,18 +764,21 @@
         }
       }
 
-      db.ref(`rooms/${roomId}`).set({
+      db.ref(`rooms/${roomId}`).update({
         title: title,
         groupCount: count,
         teamCount: teamCount,
         startCourse: startCourse,
         createdAt: Date.now(),
         players: players,
-        pars: pars,
-        scores: {},
-        chips: {}
+        pars: pars
       }).then(() => {
+        alert(editingRoomId ? "コンペ設定を上書き保存しました！" : "コンペを新規作成しました！");
+        editingRoomId = null;
+        document.getElementById('editing-status-banner').style.display = 'none';
+        document.getElementById('btn-create-room').innerText = "コンペを作成してLINE共有リンクを発行";
         renderShareButtons(count);
+        loadPastRoomsList();
       }).catch((err) => {
         alert("通信エラーが発生しました: " + err.message);
       });
