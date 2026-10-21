@@ -95,8 +95,8 @@
     /* モーダル用スタイリング */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 15px; box-sizing: border-box; }
     .modal-body-content { background: white; padding: 18px; border-radius: 12px; width: 100%; max-width: 580px; max-height: 85vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-    .modal-nav-tabs { display: flex; gap: 6px; margin-bottom: 12px; border-bottom: 2px solid #cbd5e1; padding-bottom: 6px; }
-    .btn-modal-tab { flex: 1; padding: 8px; font-weight: bold; font-size: 0.82em; border: 1px solid #cbd5e1; background: #f1f5f9; border-radius: 6px; cursor: pointer; text-align: center; }
+    .modal-nav-tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 2px solid #cbd5e1; padding-bottom: 6px; }
+    .btn-modal-tab { flex: 1; padding: 8px 4px; font-weight: bold; font-size: 0.78em; border: 1px solid #cbd5e1; background: #f1f5f9; border-radius: 6px; cursor: pointer; text-align: center; }
     .btn-modal-tab.active { background: #0284c7; color: white; border-color: #0284c7; }
   </style>
 </head>
@@ -189,7 +189,7 @@
   <div class="card" id="input-sec" style="display:none;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <h2 id="input-group-title" style="margin:0; border:none;">スコア入力</h2>
-      <button type="button" class="btn-rule-modal" onclick="openRuleModal()">📖 ルール説明</button>
+      <button type="button" class="btn-rule-modal" onclick="openRuleModal('basic')">📖 ルール説明</button>
     </div>
 
     <div class="tab-group" id="hole-tabs" style="margin-top:10px;"></div>
@@ -219,7 +219,7 @@
   <div class="card" id="board-sec" style="display:none;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <h2 style="margin:0; border:none;" id="board-room-title">👤 個人総合リーダーボード</h2>
-      <button type="button" class="btn-rule-modal" onclick="openRuleModal()">📖 ルール説明</button>
+      <button type="button" class="btn-rule-modal" onclick="openRuleModal('basic')">📖 ルール説明</button>
     </div>
 
     <div class="sort-btn-group" style="margin-top:10px;">
@@ -269,7 +269,7 @@
     </div>
   </div>
 
-  <!-- 2タブ切替式 ルール説明モーダル -->
+  <!-- 3タブ切替式 ルール説明モーダル -->
   <div id="rule-modal" class="modal-overlay" style="display:none;" onclick="closeRuleModalOuter(event)">
     <div class="modal-body-content">
       <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:6px; margin-bottom:8px;">
@@ -280,7 +280,8 @@
       <!-- モーダル内タブ切替ボタン -->
       <div class="modal-nav-tabs">
         <button type="button" class="btn-modal-tab active" id="btn-rule-tab-basic" onclick="switchRuleTab('basic')">🏆 基本ルール</button>
-        <button type="button" class="btn-modal-tab" id="btn-rule-tab-teams" onclick="switchRuleTab('teams')">🎰 チーム分けパターン</button>
+        <button type="button" class="btn-modal-tab" id="btn-rule-tab-vegas" onclick="switchRuleTab('vegas')">🎰 ラスベガス詳細</button>
+        <button type="button" class="btn-modal-tab" id="btn-rule-tab-teams" onclick="switchRuleTab('teams')">👥 チーム分け</button>
       </div>
 
       <!-- タブ1: 基本ルール -->
@@ -295,43 +296,86 @@
 
         <div style="font-weight:bold; color:#1e3a8a; margin-top:10px;">💎 2. オリンピック＆ペナルティ一覧</div>
         <ul style="margin:4px 0 8px 18px; padding:0;">
-          <li>🥇 <b>金 (+4P)</b> : グリーン外チップイン</li>
-          <li>🥈 <b>銀 (+3P)</b> : 最長パット（1パット）</li>
-          <li>🥉 <b>銅 (+2P)</b> : 2番目に長いパット（1パット）</li>
-          <li>鉄 <b>鉄 (+1P)</b> : 3番目に長いパット（1パット）</li>
-          <li>💎 <b>ダイヤ (+5P)</b> : 4番目に長いパット（1パット）</li>
+          <li>💎 <b>ダイヤ (+5P)</b> : グリーン外チップイン（パットなし）</li>
+          <li>🥇 <b>金 (+4P)</b> : グリーン最長パットを1パットイン</li>
+          <li>🥈 <b>銀 (+3P)</b> : 2番目に長いパットを1パットイン</li>
+          <li>🥉 <b>銅 (+2P)</b> : 3番目に長いパットを1パットイン</li>
+          <li>鉄 <b>鉄 (+1P)</b> : 4番目に長いパット（最短）を1パットイン</li>
           <li>💥 <b>罰符 (-1P)</b> : 池 / OB / 3パット / バンカー（全他参加者へ各1P支払）</li>
           <li>🚩 <b>ニアピン/ドラコン (+5P〜)</b> : Par3/Par5（獲得者なしは次回へ持ち越し）</li>
         </ul>
-
-        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px;">🎰 3. ラスベガスポイント計算</div>
-        <div>上位2名のネット打数で2桁数字（例: 4打と5打➔45）を作成。相手チームとの数字の差額がチームPとなります。（バーディーで相手数字反転）</div>
       </div>
 
-      <!-- タブ2: ラスベガスのチーム分けパターン -->
+      <!-- タブ2: ラスベガス詳細ガイド（新規） -->
+      <div id="rule-tab-vegas-content" style="display:none; font-size:0.8em; line-height:1.5; color:#334155;">
+        <div style="font-weight:bold; color:#1e3a8a; font-size:0.95em;">🎰 ラスベガス対戦の計算ルール</div>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:8px;">1. チーム数字の作り方</div>
+        <div>各チーム内の**上位2名（ネット打数）**の打数を並べて2桁の数字を作ります。</div>
+        <ul style="margin:4px 0 8px 18px; padding:0;">
+          <li>通常時：小さい打数を10の位、大きい打数を1の位（例: 4打と5打 ➔ <b>`45`</b>点）</li>
+          <li>チーム内3名以上の場合は、最も良い2名の打数を自動採用します。</li>
+        </ul>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px;">2. 🔥 バーディー逆転ルール</div>
+        <div>ホール内で<b>バーディー（Parより1打少ない打数）</b>を出したチームがあると、<b>相手全チームの2桁数字が反転</b>（例: 56点 ➔ <b>`65`</b>点）します！</div>
+        <div style="font-size:0.75em; color:#64748b; margin-top:2px;">※数字が大きくなる＝相手チームにとって大ダメージとなります。</div>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px;">3. 3〜4チーム全総当たりの勝敗計算</div>
+        <div>毎ホール、「チームA vs B」「チームA vs C」「チームB vs C」のように、全チーム間で数字の差額を計算してポイントを合算します。</div>
+        <ul style="margin:4px 0 8px 18px; padding:0;">
+          <li>例: A(45点) vs B(56点) ➔ 差額11点（Aが+11P, Bが-11P）</li>
+          <li>全員の合計Pは毎ホール必ず**「0P（ゼロサム）」**になります。</li>
+        </ul>
+      </div>
+
+      <!-- タブ3: ラスベガスのチーム分けパターン -->
       <div id="rule-tab-teams-content" style="display:none; font-size:0.78em; line-height:1.45; color:#334155;">
-        <div style="font-weight:bold; color:#1e3a8a; margin-bottom:4px;">1. 【3組9名】3チーム対戦 (各組3名)</div>
+        <div style="font-weight:bold; color:#1e3a8a; margin-bottom:4px;">1. 【2組6名】3チーム対戦 (各組3名) ★交差配分</div>
         <table>
-          <thead><tr><th>打順</th><th>1組目</th><th>2組目</th><th>3組目</th></tr></thead>
+          <thead><tr><th>打順</th><th>1組目</th><th>2組目</th></tr></thead>
           <tbody>
-            <tr><td>1打手</td><td><b>チームA</b></td><td><b>チームB</b></td><td><b>チームC</b></td></tr>
-            <tr><td>2打手</td><td><b>チームB</b></td><td><b>チームC</b></td><td><b>チームA</b></td></tr>
-            <tr><td>3打手</td><td><b>チームC</b></td><td><b>チームA</b></td><td><b>チームB</b></td></tr>
+            <tr><td>1打手</td><td>チームA</td><td>チームC</td></tr>
+            <tr><td>2打手</td><td>チームB</td><td>チームB</td></tr>
+            <tr><td>3打手</td><td>チームC</td><td>チームA</td></tr>
           </tbody>
         </table>
+        <div style="font-size:0.7em; color:#64748b; margin-top:2px;">※打順和が全チーム「4」で完全対等（1+3, 2+2, 3+1）。</div>
 
-        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">2. 【3組12名】3チーム対戦 (各組4名)</div>
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">2. 【2組8名】4チーム対戦 (各組4名) ★交差配分</div>
+        <table>
+          <thead><tr><th>打順</th><th>1組目</th><th>2組目</th></tr></thead>
+          <tbody>
+            <tr><td>1打手</td><td>チームA</td><td>チームD</td></tr>
+            <tr><td>2打手</td><td>チームB</td><td>チームC</td></tr>
+            <tr><td>3打手</td><td>チームC</td><td>チームB</td></tr>
+            <tr><td>4打手</td><td>チームD</td><td>チームA</td></tr>
+          </tbody>
+        </table>
+        <div style="font-size:0.7em; color:#64748b; margin-top:2px;">※打順和が全チーム「5」で完全対等（1+4, 2+3）。</div>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">3. 【3組9名】3チーム対戦 (各組3名) ★完全巡回</div>
         <table>
           <thead><tr><th>打順</th><th>1組目</th><th>2組目</th><th>3組目</th></tr></thead>
           <tbody>
             <tr><td>1打手</td><td>チームA</td><td>チームB</td><td>チームC</td></tr>
             <tr><td>2打手</td><td>チームB</td><td>チームC</td><td>チームA</td></tr>
             <tr><td>3打手</td><td>チームC</td><td>チームA</td><td>チームB</td></tr>
-            <tr><td>4打手</td><td>チームA</td><td>チームB</td><td>チームC</td></tr>
           </tbody>
         </table>
 
-        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">3. 【4組16名】4チーム対戦 (各組4名)</div>
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">4. 【3組12名】4チーム対戦 (各組4名) ★反転巡回</div>
+        <table>
+          <thead><tr><th>打順</th><th>1組目</th><th>2組目</th><th>3組目</th></tr></thead>
+          <tbody>
+            <tr><td>1打手</td><td>チームA</td><td>チームB</td><td>チームD</td></tr>
+            <tr><td>2打手</td><td>チームB</td><td>チームC</td><td>チームC</td></tr>
+            <tr><td>3打手</td><td>チームC</td><td>チームD</td><td>チームB</td></tr>
+            <tr><td>4打手</td><td>チームD</td><td>チームA</td><td>チームA</td></tr>
+          </tbody>
+        </table>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">5. 【4組16名】4チーム対戦 (各組4名) ★4x4ラテン方陣</div>
         <table>
           <thead><tr><th>打順</th><th>1組目</th><th>2組目</th><th>3組目</th><th>4組目</th></tr></thead>
           <tbody>
@@ -341,9 +385,7 @@
             <tr><td>4打手</td><td>チームD</td><td>チームA</td><td>チームB</td><td>チームC</td></tr>
           </tbody>
         </table>
-
-        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">4. 端数人数（10名・11名など）の場合</div>
-        <div style="font-size:0.9em; color:#475569;">4打手目のメンバーが入ったチームも、ラスベガス計算時は<b>上位2名（ベスト2）のみ採用</b>するため全チーム対等に勝負できます。</div>
+        <div style="font-size:0.7em; color:#64748b; margin-top:2px;">※打順和が全チーム「10」で完全対等（各チームが1〜4打手を1名ずつ獲得）。</div>
       </div>
 
       <button type="button" class="btn-submit" onclick="closeRuleModal()" style="background:#64748b; margin-top:15px;">閉じる</button>
@@ -377,9 +419,9 @@
       "チームD": "badge-team-D"
     };
 
-    function openRuleModal() {
+    function openRuleModal(defaultTab = 'basic') {
       document.getElementById('rule-modal').style.display = 'flex';
-      switchRuleTab('basic');
+      switchRuleTab(defaultTab);
     }
 
     function closeRuleModal() {
@@ -394,20 +436,30 @@
 
     function switchRuleTab(tabName) {
       const basicBtn = document.getElementById('btn-rule-tab-basic');
+      const vegasBtn = document.getElementById('btn-rule-tab-vegas');
       const teamsBtn = document.getElementById('btn-rule-tab-teams');
+
       const basicContent = document.getElementById('rule-tab-basic-content');
+      const vegasContent = document.getElementById('rule-tab-vegas-content');
       const teamsContent = document.getElementById('rule-tab-teams-content');
 
-      if (tabName === 'basic') {
-        basicBtn.classList.add('active');
-        teamsBtn.classList.remove('active');
-        basicContent.style.display = 'block';
-        teamsContent.style.display = 'none';
-      } else {
-        basicBtn.classList.remove('active');
+      basicBtn.classList.remove('active');
+      vegasBtn.classList.remove('active');
+      teamsBtn.classList.remove('active');
+
+      basicContent.style.display = 'none';
+      vegasContent.style.display = 'none';
+      teamsContent.style.display = 'none';
+
+      if (tabName === 'vegas') {
+        vegasBtn.classList.add('active');
+        vegasContent.style.display = 'block';
+      } else if (tabName === 'teams') {
         teamsBtn.classList.add('active');
-        basicContent.style.display = 'none';
         teamsContent.style.display = 'block';
+      } else {
+        basicBtn.classList.add('active');
+        basicContent.style.display = 'block';
       }
     }
 
@@ -416,10 +468,38 @@
       return ALL_TEAM_NAMES.slice(0, num);
     }
 
+    /* 精査済み・完全イーブンチーム割り当てアルゴリズム */
     function getBalancedTeamIndex(groupNum, orderNum, teamNum) {
-      const g = groupNum - 1; 
-      const o = orderNum - 1; 
-      return (g + o) % teamNum;
+      const gCount = globalData.groupCount || 3;
+      const gIdx = groupNum - 1; // 0-based
+      const oIdx = orderNum - 1; // 0-based
+
+      // 1. 2組8名 / 4チーム (交差配分: 打順和5)
+      if (gCount === 2 && teamNum === 4) {
+        if (gIdx === 0) return oIdx % 4; // 1組目: 0, 1, 2, 3
+        else return (3 - oIdx) % 4;     // 2組目: 3, 2, 1, 0
+      }
+
+      // 2. 2組6名 / 3チーム (交差配分: 打順和4)
+      if (gCount === 2 && teamNum === 3) {
+        if (gIdx === 0) return oIdx % 3; // 1組目: 0, 1, 2
+        else return (2 - oIdx) % 3;     // 2組目: 2, 1, 0
+      }
+
+      // 3. 3組12名 / 4チーム (反転巡回)
+      if (gCount === 3 && teamNum === 4) {
+        if (gIdx === 0) return oIdx % 4;           // 1組目: 0, 1, 2, 3
+        if (gIdx === 1) return (oIdx + 1) % 4;     // 2組目: 1, 2, 3, 0
+        if (gIdx === 2) return (3 - oIdx) % 4;     // 3組目: 3, 2, 1, 0
+      }
+
+      // 4. 4組16名 / 4チーム (4x4ラテン方陣)
+      if (gCount === 4 && teamNum === 4) {
+        return (gIdx + oIdx) % 4;
+      }
+
+      // 5. その他一般パターン (ラテン巡回)
+      return (gIdx + oIdx) % teamNum;
     }
 
     window.onload = function() {
@@ -891,7 +971,7 @@
         tempInputState[pId].olympic = val;
       }
 
-      ['gold', 'silver', 'bronze', 'iron', 'dia'].forEach(v => {
+      ['dia', 'gold', 'silver', 'bronze', 'iron'].forEach(v => {
         const btn = document.getElementById(`btn-oly-${pId}-${v}`);
         if (btn) {
           if (tempInputState[pId].olympic === v) btn.classList.add('active');
@@ -1011,11 +1091,11 @@
 
             <div style="font-size:0.7em; font-weight:bold; color:#475569; margin-bottom:2px;">オリンピック:</div>
             <div class="btn-grid-oly">
+              <button type="button" class="btn-oly ${st.olympic==='dia'?'active':''}" id="btn-oly-${pId}-dia" onclick="toggleOly('${pId}', 'dia')">💎ダイヤ(+5)</button>
               <button type="button" class="btn-oly ${st.olympic==='gold'?'active':''}" id="btn-oly-${pId}-gold" onclick="toggleOly('${pId}', 'gold')">🥇金(+4)</button>
               <button type="button" class="btn-oly ${st.olympic==='silver'?'active':''}" id="btn-oly-${pId}-silver" onclick="toggleOly('${pId}', 'silver')">🥈銀(+3)</button>
               <button type="button" class="btn-oly ${st.olympic==='bronze'?'active':''}" id="btn-oly-${pId}-bronze" onclick="toggleOly('${pId}', 'bronze')">🥉銅(+2)</button>
               <button type="button" class="btn-oly ${st.olympic==='iron'?'active':''}" id="btn-oly-${pId}-iron" onclick="toggleOly('${pId}', 'iron')">鉄(+1)</button>
-              <button type="button" class="btn-oly ${st.olympic==='dia'?'active':''}" id="btn-oly-${pId}-dia" onclick="toggleOly('${pId}', 'dia')">💎ダイヤ(+5)</button>
             </div>
 
             <div style="font-size:0.7em; font-weight:bold; color:#be123c; margin-bottom:2px;">罰符 (-1P):</div>
@@ -1230,11 +1310,11 @@
             const oly = hScores[pId].olympic;
             let rate = 0;
             let olyName = "";
+            if (oly === 'dia') { rate = 5; olyName = "💎ダイヤ"; }
             if (oly === 'gold') { rate = 4; olyName = "🥇金"; }
             if (oly === 'silver') { rate = 3; olyName = "🥈銀"; }
             if (oly === 'bronze') { rate = 2; olyName = "🥉銅"; }
             if (oly === 'iron') { rate = 1; olyName = "鉄"; }
-            if (oly === 'dia') { rate = 5; olyName = "💎ダイヤ"; }
 
             if (rate > 0 && totalPlayersCount > 1) {
               const gained = rate * (totalPlayersCount - 1);
