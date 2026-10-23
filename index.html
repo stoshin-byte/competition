@@ -15,9 +15,27 @@
     h1 { font-size: 1.25em; color: #1e293b; margin-top: 0; }
     h2 { font-size: 1em; color: #1e3a8a; margin-bottom: 8px; border-bottom: 2px solid #3b82f6; padding-bottom: 4px; }
     
-    .tab-group { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; }
-    .btn-tab { flex: 1; min-width: 48px; padding: 8px; border: 1px solid #cbd5e1; background: #e2e8f0; font-weight: bold; border-radius: 6px; cursor: pointer; text-align: center; }
-    .btn-tab.active { background: #2563eb; color: white; border-color: #2563eb; }
+    .manager-badge { background: #dbeafe; color: #1e3a8a; padding: 4px 10px; border-radius: 6px; font-size: 0.8em; font-weight: bold; border: 1px solid #bfdbfe; display: inline-block; margin-bottom: 10px; }
+
+    /* ホール選択タブ：9列×2段の全画面常時表示グリッド */
+    .tab-group { 
+      display: grid; 
+      grid-template-columns: repeat(9, 1fr); 
+      gap: 4px; 
+      margin-bottom: 12px; 
+    }
+    .btn-tab { 
+      min-width: 0; 
+      padding: 6px 0; 
+      font-size: 0.72em; 
+      border: 1px solid #cbd5e1; 
+      background: #e2e8f0; 
+      font-weight: bold; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      text-align: center; 
+    }
+    .btn-tab.active { background: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 2px 4px rgba(37,99,235,0.3); }
 
     .sort-btn-group { display: flex; gap: 6px; margin-bottom: 10px; }
     .btn-sort { flex: 1; padding: 6px; font-size: 0.75em; font-weight: bold; border: 1px solid #cbd5e1; background: #e2e8f0; border-radius: 6px; cursor: pointer; text-align: center; }
@@ -100,11 +118,10 @@
     
     .personal-select-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
 
-    /* モーダル用スタイリング */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 15px; box-sizing: border-box; }
     .modal-body-content { background: white; padding: 18px; border-radius: 12px; width: 100%; max-width: 580px; max-height: 85vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
     .modal-nav-tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 2px solid #cbd5e1; padding-bottom: 6px; }
-    .btn-modal-tab { flex: 1; padding: 8px 4px; font-weight: bold; font-size: 0.78em; border: 1px solid #cbd5e1; background: #f1f5f9; border-radius: 6px; cursor: pointer; text-align: center; }
+    .btn-modal-tab { flex: 1; padding: 8px 4px; font-weight: bold; font-size: 0.75em; border: 1px solid #cbd5e1; background: #f1f5f9; border-radius: 6px; cursor: pointer; text-align: center; }
     .btn-modal-tab.active { background: #0284c7; color: white; border-color: #0284c7; }
   </style>
 </head>
@@ -114,6 +131,7 @@
 
   <!-- 幹事用 設定画面 -->
   <div class="card" id="setup-sec">
+    <div class="manager-badge" id="manager-display-badge">👤 幹事ID: master</div>
     <h2>👑 幹事用 コンペ新規作成</h2>
 
     <button type="button" class="btn-load-draft" id="btn-has-draft" onclick="loadDraftData()" style="display:none;">
@@ -176,9 +194,9 @@
     <!-- PAR設定エリア -->
     <div style="margin-top:15px; background:#f8fafc; border:1px solid #cbd5e1; padding:10px; border-radius:8px;">
       <div style="font-weight:bold; font-size:0.85em; color:#1e3a8a; margin-bottom:4px;">⛳️ PAR3・PAR5の対象ホール指定</div>
-      <div style="font-size:0.72em; color:#64748b; margin-bottom:8px;">※選択しなかった残り10ホールは自動的にすべてPAR4となります。</div>
+      <div style="font-size:0.72em; color:#64748b; margin-bottom:8px;">※未選択のホールは自動的にすべてPAR4（チップ対象なし）となります。</div>
 
-      <div class="par-label-title">🚩 PAR 3 ホール（4箇所を選択）</div>
+      <div class="par-label-title">🚩 PAR 3 ホール（ニアピン対象）</div>
       <div class="par-select-grid">
         <select id="par3-select-1"></select>
         <select id="par3-select-2"></select>
@@ -186,7 +204,7 @@
         <select id="par3-select-4"></select>
       </div>
 
-      <div class="par-label-title">🏌️‍♂️ PAR 5 ホール（4箇所を選択）</div>
+      <div class="par-label-title">🏌️‍♂️ PAR 5 ホール（ドラコン対象）</div>
       <div class="par-select-grid">
         <select id="par5-select-1"></select>
         <select id="par5-select-2"></select>
@@ -203,7 +221,7 @@
     </div>
 
     <div style="margin-top:25px; border-top:2px solid #cbd5e1; padding-top:12px;">
-      <h2>📚 過去のコンペ履歴（過去の記録）</h2>
+      <h2>📚 過去のコンペ履歴（あなた専用の記録）</h2>
       <div id="past-rooms-list" style="font-size:0.85em; color:#64748b;">(読込中...)</div>
     </div>
   </div>
@@ -307,7 +325,7 @@
     </div>
   </div>
 
-  <!-- 3タブ切替式 ルール説明モーダル -->
+  <!-- 4タブ切替式 最新ルール説明モーダル -->
   <div id="rule-modal" class="modal-overlay" style="display:none;" onclick="closeRuleModalOuter(event)">
     <div class="modal-body-content">
       <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:6px; margin-bottom:8px;">
@@ -316,100 +334,75 @@
       </div>
 
       <div class="modal-nav-tabs">
-        <button type="button" class="btn-modal-tab active" id="btn-rule-tab-basic" onclick="switchRuleTab('basic')">🏆 基本ルール</button>
-        <button type="button" class="btn-modal-tab" id="btn-rule-tab-vegas" onclick="switchRuleTab('vegas')">🎰 ラスベガス詳細</button>
+        <button type="button" class="btn-modal-tab active" id="btn-rule-tab-basic" onclick="switchRuleTab('basic')">🏆 基本・HDCP</button>
+        <button type="button" class="btn-modal-tab" id="btn-rule-tab-peoria" onclick="switchRuleTab('peoria')">🎲 ダブルペリア</button>
+        <button type="button" class="btn-modal-tab" id="btn-rule-tab-vegas" onclick="switchRuleTab('vegas')">🎰 ラスベガス</button>
         <button type="button" class="btn-modal-tab" id="btn-rule-tab-teams" onclick="switchRuleTab('teams')">👥 チーム分け</button>
       </div>
 
+      <!-- ① 基本・HDCPタブ -->
       <div id="rule-tab-basic-content" style="font-size:0.8em; line-height:1.5; color:#334155;">
-        <div style="font-weight:bold; color:#1e3a8a;">🏆 1. 総合順位の仕組み</div>
+        <div style="font-weight:bold; color:#1e3a8a;">⚙️ 選べる3つのハンディ方式</div>
+        <ul style="margin:4px 0 8px 18px; padding:0;">
+          <li><b>通常ハンディ</b>: 事前入力されたハンディ（PAR4のみ等）で毎ホールNET計算。</li>
+          <li><b>全自動ダブルペリア</b>: プレイ中はスクラッチ進行。全18H完了後に隠し12Hから公式自動集計！</li>
+          <li><b>スクラッチ</b>: ハンディなしの純粋なグロス打数勝負。</li>
+        </ul>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px;">🏆 総合順位の仕組み</div>
         <div>総合P ＝ スコアP ＋ ゲームP ＋ チームP（完全ゼロサム）</div>
         <ul style="margin:4px 0 8px 18px; padding:0;">
           <li><b>スコアP</b>: (平均ネット打数 − 自分の打数) × 10倍（1打差＝10P）</li>
           <li><b>ゲームP</b>: オリンピック ＋ ニアピン/ドラコン ＋ 罰符の合算</li>
-          <li><b>チームP</b>: 毎ホールのラスベガス全対戦収支</li>
+          <li><b>チームP</b>: ラスベガス対戦の収支（※OFF設定時は算入なし）</li>
         </ul>
 
-        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px;">💎 2. オリンピック＆ペナルティ一覧</div>
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px;">💎 オリンピック＆ペナルティ一覧</div>
         <ul style="margin:4px 0 8px 18px; padding:0;">
           <li>💎 <b>ダイヤ (+5P)</b> : グリーン外チップイン（パットなし）</li>
-          <li>🥇 <b>金 (+4P)</b> : グリーン最長パットを1パットイン</li>
-          <li>🥈 <b>銀 (+3P)</b> : 2番目に長いパットを1パットイン</li>
-          <li>🥉 <b>銅 (+2P)</b> : 3番目に長いパットを1パットイン</li>
-          <li>鉄 <b>鉄 (+1P)</b> : 4番目に長いパット（最短）を1パットイン</li>
+          <li>🥇 <b>金 (+4P)</b> : 最長パット / 🥈 <b>銀 (+3P)</b> / 🥉 <b>銅 (+2P)</b> / 鉄 <b>鉄 (+1P)</b></li>
           <li>💥 <b>罰符 (-1P)</b> : 池 / OB / 3パット / バンカー（全他参加者へ各1P支払）</li>
-          <li>🚩 <b>ニアピン/ドラコン (+5P〜)</b> : Par3/Par5（獲得者なしは次回へ持ち越し）</li>
+          <li>🚩 <b>ニアピン/ドラコン (+5P〜)</b> : Par3/Par5（獲得者なしは次回持ち越し）</li>
         </ul>
       </div>
 
+      <!-- ② ダブルペリア詳細タブ -->
+      <div id="rule-tab-peoria-content" style="display:none; font-size:0.8em; line-height:1.5; color:#334155;">
+        <div style="font-weight:bold; color:#1e3a8a; font-size:0.95em;">🎲 全自動ダブルペリア（新ペリア）ルール</div>
+        <div style="margin-top:6px;">アプリが18ホールの中から<b>隠し12ホール（PAR合計48）</b>をバックグラウンドで完全ランダム選出します。</div>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px;">1. 隠しホールの内訳</div>
+        <ul style="margin:4px 0 8px 18px; padding:0;">
+          <li>PAR 3 : 2ホール</li>
+          <li>PAR 4 : 8ホール</li>
+          <li>PAR 5 : 2ホール (合計12ホール / PAR 48)</li>
+        </ul>
+
+        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px;">2. ハンディ算出公式</div>
+        <div style="background:#f1f5f9; padding:8px; border-radius:6px; font-weight:bold; text-align:center; color:#0f172a; border:1px solid #cbd5e1;">
+          HDCP ＝ (隠し12Hの打数合計 × 1.5 − 全体PAR) × 0.8
+        </div>
+        <div style="font-size:0.75em; color:#64748b; margin-top:4px;">※全組が18ホール入力完了した瞬間に、全員のHDCPと最終ネット順位が一括集計されます。</div>
+      </div>
+
+      <!-- ③ ラスベガスタブ -->
       <div id="rule-tab-vegas-content" style="display:none; font-size:0.8em; line-height:1.5; color:#334155;">
         <div style="font-weight:bold; color:#1e3a8a; font-size:0.95em;">🎰 ラスベガス対戦の計算ルール</div>
 
         <div style="font-weight:bold; color:#1e3a8a; margin-top:8px;">1. チーム数字の作り方</div>
-        <div>各チーム内の**上位2名（ネット打数）**の打数を並べて2桁の数字を作ります。</div>
+        <div>各チーム内の<b>上位2名（ネット打数）</b>の打数を並べて2桁の数字を作ります。</div>
         <ul style="margin:4px 0 8px 18px; padding:0;">
-          <li>通常時：小さい打数を10の位、大きい打数を1の位（例: 4打と5打 ➔ <b>`45`</b>点）</li>
-          <li>チーム内3名以上の場合は、最も良い2名の打数を自動採用します。</li>
+          <li>通常時：小さい打数を10の位、大きい打数を1の位（例: 4打と5打 ➔ <b>45点</b>）</li>
         </ul>
 
         <div style="font-weight:bold; color:#1e3a8a; margin-top:10px;">2. 🔥 バーディー逆転ルール</div>
-        <div>ホール内で<b>バーディー（Parより1打少ない打数）</b>を出したチームがあると、<b>相手全チームの2桁数字が反転</b>（例: 56点 ➔ <b>`65`</b>点）します！</div>
-        <div style="font-size:0.75em; color:#64748b; margin-top:2px;">※数字が大きくなる＝相手チームにとって大ダメージとなります。</div>
-
-        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px;">3. 3〜4チーム全総当たりの勝敗計算</div>
-        <div>毎ホール、「チームA vs B」「チームA vs C」「チームB vs C」のように、全チーム間で数字の差額を計算してポイントを合算します。</div>
-        <ul style="margin:4px 0 8px 18px; padding:0;">
-          <li>例: A(45点) vs B(56点) ➔ 差額11点（Aが+11P, Bが-11P）</li>
-          <li>全員の合計Pは毎ホール必ず**「0P（ゼロサム）」**になります。</li>
-        </ul>
+        <div>ホール内で<b>バーディー</b>が出たチームがあると、<b>相手全チームの数字が反転</b>（例: 56点 ➔ <b>65点</b>）します！</div>
       </div>
 
+      <!-- ④ チーム分けタブ -->
       <div id="rule-tab-teams-content" style="display:none; font-size:0.78em; line-height:1.45; color:#334155;">
-        <div style="font-weight:bold; color:#1e3a8a; margin-bottom:4px;">1. 【2組6名】3チーム対戦 (各組3名) ★交差配分</div>
-        <table>
-          <thead><tr><th>打順</th><th>1組目</th><th>2組目</th></tr></thead>
-          <tbody>
-            <tr><td>1打手</td><td>チームA</td><td>チームC</td></tr>
-            <tr><td>2打手</td><td>チームB</td><td>チームB</td></tr>
-            <tr><td>3打手</td><td>チームC</td><td>チームA</td></tr>
-          </tbody>
-        </table>
-
-        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">2. 【2組8名】2〜3チーム対戦 (各組4名)</div>
-        <div style="font-size:0.75em; color:#475569; margin-bottom:4px;">※2組の場合は公平性を保つため「2チーム」または「3チーム」選択を推奨。</div>
-
-        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">3. 【3組9名】4チーム対戦 (各組3名) ★完全イーブン補正</div>
-        <table>
-          <thead><tr><th>チーム</th><th>メンバー構成</th><th>採用ベスト2打順和</th></tr></thead>
-          <tbody>
-            <tr><td>チームA</td><td>1組1打手 ＋ 3組3打手</td><td>1 ＋ 3 ＝ <b>4</b></td></tr>
-            <tr><td>チームB</td><td>2組1打手 ＋ 1組3打手</td><td>1 ＋ 3 ＝ <b>4</b></td></tr>
-            <tr><td>チームC</td><td>3組1打手 ＋ 2組3打手</td><td>1 ＋ 3 ＝ <b>4</b></td></tr>
-            <tr><td>チームD</td><td>1組2打手 ＋ 2組2打手 ＋ 3組2打手</td><td>2 ＋ 2 ＝ <b>4</b></td></tr>
-          </tbody>
-        </table>
-
-        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">4. 【3組12名】4チーム対戦 (各組4名) ★反転巡回</div>
-        <table>
-          <thead><tr><th>打順</th><th>1組目</th><th>2組目</th><th>3組目</th></tr></thead>
-          <tbody>
-            <tr><td>1打手</td><td>チームA</td><td>チームB</td><td>チームD</td></tr>
-            <tr><td>2打手</td><td>チームB</td><td>チームC</td><td>チームC</td></tr>
-            <tr><td>3打手</td><td>チームC</td><td>チームD</td><td>チームB</td></tr>
-            <tr><td>4打手</td><td>チームD</td><td>チームA</td><td>チームA</td></tr>
-          </tbody>
-        </table>
-
-        <div style="font-weight:bold; color:#1e3a8a; margin-top:10px; margin-bottom:4px;">5. 【4組16名】4チーム対戦 (各組4名) ★4x4ラテン方陣</div>
-        <table>
-          <thead><tr><th>打順</th><th>1組目</th><th>2組目</th><th>3組目</th><th>4組目</th></tr></thead>
-          <tbody>
-            <tr><td>1打手</td><td>チームA</td><td>チームB</td><td>チームC</td><td>チームD</td></tr>
-            <tr><td>2打手</td><td>チームB</td><td>チームC</td><td>チームD</td><td>チームA</td></tr>
-            <tr><td>3打手</td><td>チームC</td><td>チームD</td><td>チームA</td><td>チームB</td></tr>
-            <tr><td>4打手</td><td>チームD</td><td>チームA</td><td>チームB</td><td>チームC</td></tr>
-          </tbody>
-        </table>
+        <div style="font-weight:bold; color:#1e3a8a; margin-bottom:4px;">👥 チーム分けのアルゴリズム</div>
+        <div>各組の打順（1打手〜4打手）に応じて、全組間で公平になるようチームA〜Dへ自動配置されます。</div>
       </div>
 
       <button type="button" class="btn-submit" onclick="closeRuleModal()" style="background:#64748b; margin-top:15px;">閉じる</button>
@@ -423,6 +416,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    let currentManagerId = "master"; 
     let roomId = "";
     let myGroup = 0;
     let selectedHole = 1;
@@ -431,6 +425,7 @@
     let historyViewMode = 'vegas';
     let isEditingUnlocked = false; 
     let globalData = { 
+      managerId: "master",
       players: {}, scores: {}, pars: {}, chips: {}, 
       startCourse: "OUT", groupCount: 3, teamCount: 3,
       hdcpMode: "normal", vegasToggle: "ON", hiddenHoles: []
@@ -464,22 +459,29 @@
 
     function switchRuleTab(tabName) {
       const basicBtn = document.getElementById('btn-rule-tab-basic');
+      const peoriaBtn = document.getElementById('btn-rule-tab-peoria');
       const vegasBtn = document.getElementById('btn-rule-tab-vegas');
       const teamsBtn = document.getElementById('btn-rule-tab-teams');
 
       const basicContent = document.getElementById('rule-tab-basic-content');
+      const peoriaContent = document.getElementById('rule-tab-peoria-content');
       const vegasContent = document.getElementById('rule-tab-vegas-content');
       const teamsContent = document.getElementById('rule-tab-teams-content');
 
       basicBtn.classList.remove('active');
+      if (peoriaBtn) peoriaBtn.classList.remove('active');
       vegasBtn.classList.remove('active');
       teamsBtn.classList.remove('active');
 
       basicContent.style.display = 'none';
+      if (peoriaContent) peoriaContent.style.display = 'none';
       vegasContent.style.display = 'none';
       teamsContent.style.display = 'none';
 
-      if (tabName === 'vegas') {
+      if (tabName === 'peoria') {
+        if (peoriaBtn) peoriaBtn.classList.add('active');
+        if (peoriaContent) peoriaContent.style.display = 'block';
+      } else if (tabName === 'vegas') {
         vegasBtn.classList.add('active');
         vegasContent.style.display = 'block';
       } else if (tabName === 'teams') {
@@ -581,10 +583,20 @@
     }
 
     window.onload = function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const managerParam = urlParams.get('manager');
+      if (managerParam) {
+        currentManagerId = managerParam.trim();
+      }
+
+      const badgeEl = document.getElementById('manager-display-badge');
+      if (badgeEl) {
+        badgeEl.innerText = `👤 幹事ID: ${currentManagerId}`;
+      }
+
       initParDropdownOptions();
       checkDraftExists();
 
-      const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
       const groupParam = urlParams.get('group');
 
@@ -598,6 +610,7 @@
       }
     };
 
+    /* PAR選択ドロップダウンの初期化 */
     function initParDropdownOptions() {
       const defaultPar3 = [3, 7, 12, 16];
       const defaultPar5 = [5, 9, 13, 18];
@@ -607,8 +620,8 @@
         const sel5 = document.getElementById(`par5-select-${i}`);
 
         if (sel3 && sel5) {
-          sel3.innerHTML = '';
-          sel5.innerHTML = '';
+          sel3.innerHTML = '<option value="0">ー</option>';
+          sel5.innerHTML = '<option value="0">ー</option>';
 
           for (let h = 1; h <= 18; h++) {
             sel3.innerHTML += `<option value="${h}" ${h === defaultPar3[i - 1] ? 'selected' : ''}>${h}H</option>`;
@@ -618,7 +631,12 @@
       }
     }
 
-    /* 前日用: 下書き保存 (LocalStorage) */
+    /* 幹事IDごとの分離キーを取得 */
+    function getDraftStorageKey() {
+      return `golf_app_draft_${currentManagerId}`;
+    }
+
+    /* 前日用: 下書き保存 (LocalStorage分離) */
     function saveDraftData() {
       const count = parseInt(document.getElementById('groupCountSelect').value);
       let playersData = [];
@@ -647,6 +665,7 @@
       }
 
       const draftObj = {
+        managerId: currentManagerId,
         title: document.getElementById('roomTitle').value,
         hdcpMode: document.getElementById('hdcpModeSelect').value,
         vegasToggle: document.getElementById('vegasToggleSelect').value,
@@ -659,23 +678,23 @@
         savedAt: new Date().toLocaleString()
       };
 
-      localStorage.setItem('golf_app_draft', JSON.stringify(draftObj));
-      alert(`下書きデータ（前日用）を端末に保存しました！\n当日の朝にこの画面を開くと復元できます。`);
+      localStorage.setItem(getDraftStorageKey(), JSON.stringify(draftObj));
+      alert(`[幹事ID: ${currentManagerId}] 専用の下書きデータを保存しました！\n当日の朝にこの画面を開くと復元できます。`);
       checkDraftExists();
     }
 
     function checkDraftExists() {
-      const draft = localStorage.getItem('golf_app_draft');
+      const draft = localStorage.getItem(getDraftStorageKey());
       const btn = document.getElementById('btn-has-draft');
       if (draft && btn) {
         const draftObj = JSON.parse(draft);
         btn.style.display = 'block';
-        btn.innerText = `📂 前日保存した下書きを読み込む (${draftObj.savedAt})`;
+        btn.innerText = `📂 保存した下書きを読み込む (${draftObj.savedAt})`;
       }
     }
 
     function loadDraftData() {
-      const draftStr = localStorage.getItem('golf_app_draft');
+      const draftStr = localStorage.getItem(getDraftStorageKey());
       if (!draftStr) return;
 
       const draftObj = JSON.parse(draftStr);
@@ -692,12 +711,12 @@
 
       if (draftObj.par3s) {
         for (let i = 1; i <= 4; i++) {
-          if (draftObj.par3s[i-1]) document.getElementById(`par3-select-${i}`).value = draftObj.par3s[i-1];
+          if (draftObj.par3s[i-1] !== undefined) document.getElementById(`par3-select-${i}`).value = draftObj.par3s[i-1];
         }
       }
       if (draftObj.par5s) {
         for (let i = 1; i <= 4; i++) {
-          if (draftObj.par5s[i-1]) document.getElementById(`par5-select-${i}`).value = draftObj.par5s[i-1];
+          if (draftObj.par5s[i-1] !== undefined) document.getElementById(`par5-select-${i}`).value = draftObj.par5s[i-1];
         }
       }
 
@@ -713,9 +732,10 @@
         });
       }
 
-      alert('前日の下書きデータを復元しました！\n当日の1H目の打順通りに「▲ 上へ」「▼ 下へ」ボタンで並び替えてから本発行してください。');
+      alert('下書きデータを復元しました！\n当日の1H目の打順通りに並び替えてから本発行してください。');
     }
 
+    /* 幹事ID専用の過去コンペ履歴だけを読み込んで表示 */
     function loadPastRoomsList() {
       const pastListEl = document.getElementById('past-rooms-list');
       db.ref('rooms').once('value', (snapshot) => {
@@ -726,24 +746,35 @@
         }
 
         pastListEl.innerHTML = '';
-        Object.entries(rooms).reverse().forEach(([rId, rData]) => {
-          const dateStr = rData.createdAt ? new Date(rData.createdAt).toLocaleDateString('ja-JP') : '';
-          const titleStr = rData.title || "無題のコンペ";
-          const pCount = Object.keys(rData.players || {}).length;
+        let myRoomsCount = 0;
 
-          pastListEl.innerHTML += `
-            <div class="past-room-item">
-              <div onclick="openPastRoom('${rId}')" style="cursor:pointer; flex:1;">
-                <div style="font-weight:bold; color:#1e3a8a;">🏆 ${titleStr}</div>
-                <div style="font-size:0.75em; color:#64748b;">${dateStr} (${rData.groupCount || 3}組 / ${rData.hdcpMode === 'double_peoria' ? 'ダブルペリア' : '通常HDCP'} / ${pCount}名)</div>
+        Object.entries(rooms).reverse().forEach(([rId, rData]) => {
+          // 幹事IDが一致するものだけ表示
+          const roomManager = rData.managerId || "master";
+          if (roomManager === currentManagerId) {
+            myRoomsCount++;
+            const dateStr = rData.createdAt ? new Date(rData.createdAt).toLocaleDateString('ja-JP') : '';
+            const titleStr = rData.title || "無題のコンペ";
+            const pCount = Object.keys(rData.players || {}).length;
+
+            pastListEl.innerHTML += `
+              <div class="past-room-item">
+                <div onclick="openPastRoom('${rId}')" style="cursor:pointer; flex:1;">
+                  <div style="font-weight:bold; color:#1e3a8a;">🏆 ${titleStr}</div>
+                  <div style="font-size:0.75em; color:#64748b;">${dateStr} (${rData.groupCount || 3}組 / ${rData.hdcpMode === 'double_peoria' ? 'ダブルペリア' : '通常HDCP'} / ${pCount}名)</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <button type="button" class="btn-action-past btn-delete-past" onclick="deletePastRoom(event, '${rId}', '${titleStr}')">🗑️ 削除</button>
+                  <div onclick="openPastRoom('${rId}')" style="font-size:0.8em; font-weight:bold; color:#2563eb; cursor:pointer; margin-left:4px;">閲覧 ➔</div>
+                </div>
               </div>
-              <div style="display:flex; align-items:center; gap:6px;">
-                <button type="button" class="btn-action-past btn-delete-past" onclick="deletePastRoom(event, '${rId}', '${titleStr}')">🗑️ 削除</button>
-                <div onclick="openPastRoom('${rId}')" style="font-size:0.8em; font-weight:bold; color:#2563eb; cursor:pointer; margin-left:4px;">閲覧 ➔</div>
-              </div>
-            </div>
-          `;
+            `;
+          }
         });
+
+        if (myRoomsCount === 0) {
+          pastListEl.innerHTML = `<div style="font-size:0.8em; color:#94a3b8;">[幹事ID: ${currentManagerId}] の作成済みコンペはありません。</div>`;
+        }
       });
     }
 
@@ -771,7 +802,6 @@
       });
     }
 
-    /* 完全に動作保証された並び替え（値の入れ替え）関数 */
     function movePlayerOrder(g, p, dir) {
       const targetP = p + dir;
       if (targetP < 1 || targetP > 4) return;
@@ -840,7 +870,6 @@
       }
     }
 
-    /* ダブルペリア用: 隠し12ホールのランダム生成 (Par3x2, Par4x6, Par5x2 -> 計Par48) */
     function generateHiddenHoles(par3List, par5List) {
       let allHoles = [];
       for (let i = 1; i <= 18; i++) allHoles.push(i);
@@ -849,12 +878,10 @@
       let p5 = par5List.slice();
       let p4 = allHoles.filter(h => !p3.includes(h) && !p5.includes(h));
 
-      // シャッフル
       p3.sort(() => Math.random() - 0.5);
       p5.sort(() => Math.random() - 0.5);
       p4.sort(() => Math.random() - 0.5);
 
-      // 選出 (PAR3:2ホール, PAR5:2ホール, PAR4:8ホール -> 合計12ホール)
       let selected = [
         ...p3.slice(0, 2),
         ...p5.slice(0, 2),
@@ -884,8 +911,11 @@
       let par5Holes = [];
 
       for (let i = 1; i <= 4; i++) {
-        par3Holes.push(parseInt(document.getElementById(`par3-select-${i}`).value));
-        par5Holes.push(parseInt(document.getElementById(`par5-select-${i}`).value));
+        const val3 = parseInt(document.getElementById(`par3-select-${i}`).value);
+        const val5 = parseInt(document.getElementById(`par5-select-${i}`).value);
+
+        if (val3 > 0) par3Holes.push(val3);
+        if (val5 > 0) par5Holes.push(val5);
       }
 
       const allSelected = [...par3Holes, ...par5Holes];
@@ -925,6 +955,7 @@
       }
 
       db.ref(`rooms/${roomId}`).set({
+        managerId: currentManagerId, // 幹事IDを保存
         title: title,
         hdcpMode: hdcpMode,
         vegasToggle: vegasToggle,
@@ -1021,7 +1052,7 @@
       select.innerHTML = '';
 
       Object.entries(globalData.players || {}).forEach(([pId, p]) => {
-        select.innerHTML += `<option value="${pId}" ${pId === curSelected ? 'selected' : ''}>${p.group}組: ${p.name}</option>`;
+        select.innerHTML += `<option value="${pId}" ${pId === curSelected ? 'selected' : ''}>${p.group}组: ${p.name}</option>`;
       });
 
       if (!select.value && Object.keys(globalData.players || {}).length > 0) {
@@ -1490,7 +1521,6 @@
       return holeOrders;
     }
 
-    /* ダブルペリアHDCPの自動算出 (12隠しホール: 公式 (隠し打数 * 1.5 - 72) * 0.8) */
     function calculateDoublePeoriaHdcp(pId, scores, hiddenHoles) {
       if (!hiddenHoles || hiddenHoles.length === 0) return 0;
 
@@ -1504,7 +1534,7 @@
         }
       });
 
-      if (count < 12) return 0; // 全隠しホール完了前は0
+      if (count < 12) return 0;
 
       let totalPar = 0;
       for (let h = 1; h <= 18; h++) {
@@ -1512,7 +1542,7 @@
       }
 
       let hdcp = ((hiddenSum * 1.5) - totalPar) * 0.8;
-      return Math.round(hdcp * 10) / 10; // 小数点第1位に丸める
+      return Math.round(hdcp * 10) / 10;
     }
 
     function calculateLeaderboard() {
@@ -1525,7 +1555,6 @@
       const isVegasOn = globalData.vegasToggle !== 'OFF';
       const isDoublePeoria = globalData.hdcpMode === 'double_peoria';
 
-      // UI切替
       document.getElementById('th-team-pts').style.display = isVegasOn ? '' : 'none';
       document.getElementById('btn-view-vegas').style.display = isVegasOn ? '' : 'none';
 
@@ -1765,7 +1794,6 @@
         }
       });
 
-      // ダブルペリア最終NET算出
       if (isDoublePeoria) {
         Object.keys(players).forEach(pId => {
           const hdcp = calculateDoublePeoriaHdcp(pId, scores, globalData.hiddenHoles || []);
