@@ -17,6 +17,11 @@
     
     .manager-badge { background: #dbeafe; color: #1e3a8a; padding: 4px 10px; border-radius: 6px; font-size: 0.8em; font-weight: bold; border: 1px solid #bfdbfe; display: inline-block; margin-bottom: 10px; }
 
+    /* サブ幹事発行エリアのスタイル */
+    .submanager-generator-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+    .btn-gen-sub { background: #16a34a; color: white; font-weight: bold; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em; width: 100%; }
+    .btn-gen-sub:hover { background: #15803d; }
+
     /* ホール選択タブ：9列×2段の全画面常時表示グリッド */
     .tab-group { 
       display: grid; 
@@ -132,6 +137,23 @@
   <!-- 幹事用 設定画面 -->
   <div class="card" id="setup-sec">
     <div class="manager-badge" id="manager-display-badge">👤 幹事ID: master</div>
+
+    <!-- ➕ サブ幹事専用作成ページの発行ブロック（マスター側のみ表示） -->
+    <div class="submanager-generator-box" id="submanager-gen-box">
+      <div style="font-weight:bold; font-size:0.88em; color:#166534; margin-bottom:4px;">➕ 他の幹事さん（田中さん等）へ専用ページを渡す</div>
+      <div style="font-size:0.75em; color:#15803d; margin-bottom:8px;">ボタンを押すと、完全独立した「サブ幹事専用の作成ページ」を発行してLINEで共有できます。</div>
+      <button type="button" class="btn-gen-sub" onclick="generateSubManagerUrl()">✨ 新しい幹事専用作成ページを1タップ発行</button>
+      
+      <div id="submanager-result-area" style="display:none; margin-top:10px; background:white; padding:10px; border-radius:6px; border:1px solid #cbd5e1;">
+        <div style="font-size:0.8em; font-weight:bold; color:#1e3a8a;">発行された幹事専用URL:</div>
+        <input type="text" id="submanager-url-input" readonly style="font-size:0.75em; background:#f8fafc; margin-bottom:6px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+          <a id="btn-submanager-line" href="#" target="_blank" class="btn-share-line" style="margin-top:0; padding:8px; font-size:0.8em;">📱 LINEで送る</a>
+          <button type="button" onclick="copySubManagerUrl()" style="background:#0284c7; color:white; font-weight:bold; border:none; border-radius:6px; cursor:pointer; font-size:0.8em;">📋 URLをコピー</button>
+        </div>
+      </div>
+    </div>
+
     <h2>👑 幹事用 コンペ新規作成</h2>
 
     <button type="button" class="btn-load-draft" id="btn-has-draft" onclick="loadDraftData()" style="display:none;">
@@ -543,7 +565,6 @@
       return ALL_TEAM_NAMES.slice(0, num);
     }
 
-    /* 全パターン精査・完全イーブンチーム割り当てアルゴリズム */
     function getBalancedTeamIndex(groupNum, orderNum, teamNum) {
       const gCount = globalData.groupCount || 3;
       const gIdx = groupNum - 1; 
@@ -610,33 +631,52 @@
       }
     };
 
-    /* PAR選択ドロップダウンの初期化 */
-    function initParDropdownOptions() {
-      const defaultPar3 = [3, 7, 12, 16];
-      const defaultPar5 = [5, 9, 13, 18];
+    /* サブ幹事専用URLのワンタップ自動発行 */
+    function generateSubManagerUrl() {
+      const randomSubId = "mgr-" + Math.random().toString(36).substring(2, 8);
+      const baseUrl = window.location.href.split('?')[0];
+      const subUrl = `${baseUrl}?manager=${randomSubId}`;
 
+      document.getElementById('submanager-url-input').value = subUrl;
+
+      const lineText = encodeURIComponent(`【ゴルフコンペ幹事専用ページ】\nあなた専用のゴルフコンペ作成・管理ページを作成しました！次回からこのURLから新しいコンペを作成・管理できます：\n${subUrl}`);
+      document.getElementById('btn-submanager-line').href = `https://line.me/R/msg/text/?${lineText}`;
+
+      document.getElementById('submanager-result-area').style.display = 'block';
+    }
+
+    function copySubManagerUrl() {
+      const input = document.getElementById('submanager-url-input');
+      input.select();
+      navigator.clipboard.writeText(input.value).then(() => {
+        alert("サブ幹事専用URLをクリップボードにコピーしました！LINEやメールでそのまま送ることができます。");
+      }).catch(() => {
+        alert("コピーに失敗しました。手動でテキストを選択してコピーしてください。");
+      });
+    }
+
+    /* PAR選択ドロップダウンの初期化（デフォルトですべて「ー」を選択） */
+    function initParDropdownOptions() {
       for (let i = 1; i <= 4; i++) {
         const sel3 = document.getElementById(`par3-select-${i}`);
         const sel5 = document.getElementById(`par5-select-${i}`);
 
         if (sel3 && sel5) {
-          sel3.innerHTML = '<option value="0">ー</option>';
-          sel5.innerHTML = '<option value="0">ー</option>';
+          sel3.innerHTML = '<option value="0" selected>ー</option>';
+          sel5.innerHTML = '<option value="0" selected>ー</option>';
 
           for (let h = 1; h <= 18; h++) {
-            sel3.innerHTML += `<option value="${h}" ${h === defaultPar3[i - 1] ? 'selected' : ''}>${h}H</option>`;
-            sel5.innerHTML += `<option value="${h}" ${h === defaultPar5[i - 1] ? 'selected' : ''}>${h}H</option>`;
+            sel3.innerHTML += `<option value="${h}">${h}H</option>`;
+            sel5.innerHTML += `<option value="${h}">${h}H</option>`;
           }
         }
       }
     }
 
-    /* 幹事IDごとの分離キーを取得 */
     function getDraftStorageKey() {
       return `golf_app_draft_${currentManagerId}`;
     }
 
-    /* 前日用: 下書き保存 (LocalStorage分離) */
     function saveDraftData() {
       const count = parseInt(document.getElementById('groupCountSelect').value);
       let playersData = [];
@@ -735,7 +775,6 @@
       alert('下書きデータを復元しました！\n当日の1H目の打順通りに並び替えてから本発行してください。');
     }
 
-    /* 幹事ID専用の過去コンペ履歴だけを読み込んで表示 */
     function loadPastRoomsList() {
       const pastListEl = document.getElementById('past-rooms-list');
       db.ref('rooms').once('value', (snapshot) => {
@@ -749,7 +788,6 @@
         let myRoomsCount = 0;
 
         Object.entries(rooms).reverse().forEach(([rId, rData]) => {
-          // 幹事IDが一致するものだけ表示
           const roomManager = rData.managerId || "master";
           if (roomManager === currentManagerId) {
             myRoomsCount++;
@@ -955,7 +993,7 @@
       }
 
       db.ref(`rooms/${roomId}`).set({
-        managerId: currentManagerId, // 幹事IDを保存
+        managerId: currentManagerId,
         title: title,
         hdcpMode: hdcpMode,
         vegasToggle: vegasToggle,
@@ -1052,7 +1090,7 @@
       select.innerHTML = '';
 
       Object.entries(globalData.players || {}).forEach(([pId, p]) => {
-        select.innerHTML += `<option value="${pId}" ${pId === curSelected ? 'selected' : ''}>${p.group}组: ${p.name}</option>`;
+        select.innerHTML += `<option value="${pId}" ${pId === curSelected ? 'selected' : ''}>${p.group}組: ${p.name}</option>`;
       });
 
       if (!select.value && Object.keys(globalData.players || {}).length > 0) {
